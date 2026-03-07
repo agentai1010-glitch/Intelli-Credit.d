@@ -29,12 +29,7 @@ app.mount("/generated_cams", StaticFiles(directory="generated_cams"), name="gene
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "https://*.vercel.app",
-        "https://your-production-domain.vercel.app"
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
