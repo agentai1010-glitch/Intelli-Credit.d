@@ -24,19 +24,30 @@ async def upload_documents(files: List[UploadFile] = File(...)):
         file_path = os.path.join(TEMP_DIR, file.filename)
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-            
-        # 1. Run Layout parsing
-        text_blocks = extract_layout_text(file_path)
-        
-        # 2. Extract specific Tables
-        tables = extract_tables(file_path)
-        tables_data = [t.to_dict(orient="records") for t in tables]
-        
-        # 3. Fallback to Tesseract OCR if both are empty
+
+        # 1. Run Layout parsing (PyMuPDF — safe, no external deps)
+        try:
+            text_blocks = extract_layout_text(file_path)
+        except Exception as e:
+            print(f"[upload] Layout extraction failed for {file.filename}: {e}")
+            text_blocks = []
+
+        # 2. Extract Tables via Camelot (requires Ghostscript — may fail on some systems)
+        try:
+            tables = extract_tables(file_path)
+            tables_data = [t.to_dict(orient="records") for t in tables]
+        except Exception as e:
+            print(f"[upload] Table extraction failed for {file.filename} (Ghostscript may be missing): {e}")
+            tables_data = []
+
+        # 3. Fallback to Tesseract OCR if text extraction yielded nothing
         raw_text = ""
-        if not text_blocks and not tables:
-            raw_text = run_ocr_with_tesseract(file_path)
-            
+        if not text_blocks and not tables_data:
+            try:
+                raw_text = run_ocr_with_tesseract(file_path)
+            except Exception as e:
+                print(f"[upload] Tesseract OCR failed for {file.filename}: {e}")
+
         # Combine all extracted text for classification
         combined_text = raw_text
         if text_blocks:
@@ -45,10 +56,14 @@ async def upload_documents(files: List[UploadFile] = File(...)):
             for t_dict in tables_data:
                 for row in t_dict:
                     combined_text += " " + " ".join([str(v) for v in row.values()])
-                    
+
         # Classify Document using ML Smart Parser
-        class_result = classify_document_type(combined_text, file.filename)
-            
+        try:
+            class_result = classify_document_type(combined_text, file.filename)
+        except Exception as e:
+            print(f"[upload] Document classification failed for {file.filename}: {e}")
+            class_result = {"document_type": "unknown", "confidence": 0.0}
+
         results.append({
             "filename": file.filename,
             "document_type": class_result["document_type"],

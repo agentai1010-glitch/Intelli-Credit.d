@@ -74,7 +74,8 @@ export default function UploadPage() {
 
         } catch (err) {
             console.error(err);
-            setError('Failed to upload and parse documents. Please try again.');
+            const detail = err?.response?.data?.detail || err?.message || 'Unknown error';
+            setError(`Upload failed: ${detail}`);
             setProgressStep(0);
         }
     };
