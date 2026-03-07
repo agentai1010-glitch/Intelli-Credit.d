@@ -20,8 +20,17 @@ class CreditScoringModel:
         If the file doesn't exist, it initializes and trains a mock model for testing purposes.
         """
         if os.path.exists(path_or_artifact):
-            self.model = lgb.Booster(model_file=path_or_artifact)
-        else:
+            try:
+                self.model = lgb.Booster(model_file=path_or_artifact)
+                return  # Loaded successfully, done.
+            except Exception as e:
+                print(f"[model.py] Corrupted or incompatible model file at {path_or_artifact}: {e}")
+                print("[model.py] Deleting and regenerating a fresh mock model...")
+                try:
+                    os.remove(path_or_artifact)
+                except Exception:
+                    pass
+        if not os.path.exists(path_or_artifact):
             print(f"Model not found at {path_or_artifact}. Initializing untrained mock booster.")
             # Dummy training data to fit LightGBM schema
             train_data = lgb.Dataset(
