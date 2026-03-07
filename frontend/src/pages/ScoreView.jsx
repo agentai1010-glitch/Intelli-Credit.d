@@ -167,15 +167,62 @@ export default function ScoreView() {
     const decision = getTier(displayScore);
     const shapFeatures = curData?.explanation?.top_features || curData?.score_result?.top_features || [];
 
-    // Waterfall prep
+    const formatLimitCr = (val) => {
+        if (val === null || val === undefined || isNaN(val)) return '—';
+        const num = Number(val);
+        const cr = num / 10_000_000; // backend returns raw rupees
+        return `₹${cr.toFixed(1)}Cr`;
+    };
+
+    const formatCounterfactualValue = (factor, value) => {
+        if (value === null || value === undefined || isNaN(value)) return 'N/A';
+        const num = Number(value);
+        const key = (factor || '').toLowerCase();
+
+        let unit = 'raw';
+        if (key === 'working_capital') {
+            unit = 'currency';
+        } else if (key === 'debt_equity_ratio' || key === 'current_ratio') {
+            unit = 'ratio';
+        } else if (key === 'capacity_utilization') {
+            unit = 'percent';
+        } else if (
+            key.includes('revenue') ||
+            key.includes('turnover') ||
+            key.includes('credits') ||
+            key.includes('net_worth') ||
+            (key.includes('collateral') && !key.includes('ratio')) ||
+            (key.includes('debt') && !key.includes('ratio'))
+        ) {
+            unit = 'currency';
+        }
+
+        if (unit === 'currency') {
+            const cr = num / 10_000_000;
+            return `₹${cr.toFixed(2)}Cr`;
+        }
+
+        if (unit === 'ratio') {
+            return num.toFixed(2);
+        }
+
+        if (unit === 'percent') {
+            return `${num.toFixed(0)}%`;
+        }
+
+        return num;
+    };
+
+    // Waterfall prep (flip SHAP sign so positive = lift towards APPROVE)
     let currentShapBase = 50;
     const waterfallData = shapFeatures.map(s => {
-        const isPos = s.impact > 0;
+        const approvalImpact = -1 * (s.impact || 0); // model SHAP is on default risk
+        const isPos = approvalImpact > 0;
         return {
             name: s.feature.replace(/_/g, ' '),
-            rawImpact: s.impact,
+            rawImpact: approvalImpact,
             start: currentShapBase,
-            end: currentShapBase + (s.impact * 100), // Scale up visual
+            end: currentShapBase + (approvalImpact * 100), // Scale up visual
             fill: isPos ? '#10b981' : '#ef4444' // Emerald / Red
         };
     });
@@ -201,12 +248,12 @@ export default function ScoreView() {
                     </h1>
                     <p className="text-slate-400 text-lg">Multi-model consensus output & interpretability maps</p>
                 </div>
-                <button className="btn-primary" onClick={() => navigate('/qualitative-input', {
+                        <button className="btn-primary" onClick={() => navigate('/qualitative-input', {
                     state: {
                         baseScore: displayScore,
                         companyName: sessionData.features?.company_name || 'Sharma Textile Mills Pvt. Ltd',
                         riskTier: decision,
-                        loanLimit: termsData?.recommended_limit_cr + "Cr",
+                            loanLimit: formatLimitCr(termsData?.recommended_limit_cr),
                         interestRate: termsData?.recommended_rate_pct + "%",
                         tenure: termsData?.sanction_terms?.tenure_months + "m",
                         gstFlags: sessionData.gst_reconciliation?.flags || [],
@@ -251,7 +298,7 @@ export default function ScoreView() {
                             <div className="bg-slate-900/50 rounded-lg p-3 text-center border border-slate-700/50">
                                 <DollarSign className="w-5 h-5 mx-auto text-emerald-400 mb-1" />
                                 <div className="text-[10px] text-slate-400 uppercase">Limit</div>
-                                <div className="font-bold text-sm text-slate-100">{termsData.recommended_limit_cr}Cr</div>
+                                <div className="font-bold text-sm text-slate-100">{formatLimitCr(termsData.recommended_limit_cr)}</div>
                             </div>
                             <div className="bg-slate-900/50 rounded-lg p-3 text-center border border-slate-700/50">
                                 <TrendingUp className="w-5 h-5 mx-auto text-blue-400 mb-1" />
@@ -312,7 +359,13 @@ export default function ScoreView() {
                                     <span className="font-bold text-slate-200 uppercase text-xs tracking-wider">{cf.factor.replace(/_/g, ' ')}</span>
                                     <span className="text-xs font-bold bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded">+{cf.score_improvement.toFixed(1)} Pts</span>
                                 </div>
-                                <div className="text-sm text-slate-400 mb-3">{cf.action} ({cf.current_value} → {cf.target_value})</div>
+                                <div className="text-sm text-slate-400 mb-3">
+                                    {cf.action} (
+                                    {formatCounterfactualValue(cf.factor, cf.current_value)}
+                                    {" → "}
+                                    {formatCounterfactualValue(cf.factor, cf.target_value)}
+                                    )
+                                </div>
                                 <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
                                     <div className="bg-emerald-500 h-1.5 rounded-full relative" style={{ width: `${cf.new_projected_score}%` }}>
                                         <div className="absolute top-0 right-0 h-full bg-white opacity-40 w-1 animate-pulse"></div>
