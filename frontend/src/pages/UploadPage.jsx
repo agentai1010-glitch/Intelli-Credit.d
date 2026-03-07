@@ -45,20 +45,11 @@ export default function UploadPage() {
             setProgressStep(2); // Type Detection
             await new Promise(r => setTimeout(r, 800));
 
-            // Generate mock classifications 
-            // Remove mock fallback and use REAL ML pipeline results
+            // Map backend results to frontend presentation format
             const results = response.processed_files.map((f) => {
                 let type = f.document_type || "UNKNOWN";
                 let conf = f.confidence || 0.0;
-                let fields = ["No specific fields extracted yet"];
-
-                // Keep localized mock fields just for the UI presentation demo 
-                // until the parse_by_type engine module is fully fleshed out
-                if (type === "GST_RETURN") fields = ["Turnover: ₹12.5L", "Output Tax: ₹2.2L", "ITC: ₹1.8L"];
-                if (type === "BANK_STATEMENT") fields = ["Credits: ₹45L", "Debits: ₹40L", "Closing: ₹5L"];
-                if (type === "BALANCE_SHEET") fields = ["Total Assets: ₹250L", "Net Worth: ₹120L", "Liabilities: ₹130L"];
-                if (type === "ANNUAL_REPORT") fields = ["Revenue: ₹85L", "EBITDA: ₹12L", "PAT: ₹8L"];
-                if (type === "SANCTION_LETTER") fields = ["Exposure: ₹2.5Cr", "Facility: CC", "Rate: 9%"];
+                let fields = f.extracted_fields?.display || ["No specific fields extracted yet"];
 
                 return { file: f, type, conf, fields };
             });

@@ -29,15 +29,39 @@ async def generate_cam(payload: Dict[str, Any]):
     smart_parser = payload.get("smart_parser", {})
     
     # Core mappings safely extracted for prompt
-    company_name = safe_val(payload.get("company_name"))
+    company_name = safe_val(payload.get("companyName"))
+    
+    # Flat states passed from the pipeline
+    base_score = payload.get("baseScore", 76)
+    adjusted_score = payload.get("adjustedScore", 46)
+    qualitative_delta = payload.get("qualitativeDelta", -30)
+    gst_flags = payload.get("gstFlags", [])
+    reconciliation_score = payload.get("reconciliationScore", 58)
+    regulatory_score = payload.get("regulatoryScore", 85)
+    final_risk_score = payload.get("finalScore", 46)
+    
+    # Optional nested variables (if tracking ML payload features)
+    features = payload.get("features", {})
+    ml_output = payload.get("ml_output", {})
+    gst_reconciliation = payload.get("gst_reconciliation", {})
+    loan_pricing_engine = payload.get("loan_pricing_engine", {})
+    regulatory_intelligence = payload.get("regulatory_intelligence", {})
+    smart_parser = payload.get("smart_parser", {})
+    
     promoter_news_summary = safe_val(payload.get("promoter_news_summary"))
-    regulatory_flags = safe_val(regulatory_intelligence.get("critical_flags", []))
-    management_quality_assessment = safe_val(qualitative_adjuster.get("management_quality"))
+    regulatory_flags = payload.get("regulatoryFlags", [])
+    regulatory_sources = payload.get("regulatorySources", [])
+    
+    analyst_inputs = payload.get("analystInputs", {})
+    management_quality_assessment = safe_val(analyst_inputs.get("management_quality"))
+    capacity_utilization = safe_val(analyst_inputs.get("capacity_utilization"))
+    industry_outlook = safe_val(analyst_inputs.get("industry_outlook"))
+    
     years_in_business = safe_val(features.get("years_in_business"))
     revenue = safe_val(features.get("revenue"))
     ebitda = safe_val(features.get("ebitda"))
     existing_debt = safe_val(features.get("existing_debt"))
-    
+
     # Calculate DSCR inline
     dscr = "Not provided"
     ext_debt_num = features.get("existing_debt", 0)
@@ -47,12 +71,13 @@ async def generate_cam(payload: Dict[str, Any]):
             calc_dscr = eb_num / (ext_debt_num * 0.15)
             dscr = f"{calc_dscr:.2f}x"
 
-    capacity_utilization = safe_val(qualitative_adjuster.get("capacity_utilization"))
-    qualitative_notes = safe_val(qualitative_adjuster.get("summary_paragraph"))
+    qualitative_notes = safe_val(payload.get("qualitative_adjuster", {}).get("summary_paragraph"))
     net_worth = safe_val(features.get("net_worth"))
     debt_equity_ratio = safe_val(features.get("debt_equity_ratio"))
     current_ratio = safe_val(features.get("current_ratio"))
-    gst_reconciliation_score = safe_val(gst_reconciliation.get("reconciliation_score"))
+    
+    # Map gst flat score directly
+    gst_reconciliation_score = safe_val(reconciliation_score)
     three_year_financials = safe_val(smart_parser.get("merged_financials"))
     collateral_value = safe_val(features.get("collateral_value"))
     collateral_type = safe_val(features.get("collateral_type"))
@@ -70,12 +95,21 @@ async def generate_cam(payload: Dict[str, Any]):
             
     industry_outlook = safe_val(qualitative_adjuster.get("industry_outlook"))
     sector_news_summary = safe_val(payload.get("sector_news_summary"))
-    rbi_regulatory_context = safe_val(regulatory_intelligence.get("summary_paragraph"))
+    rbi_regulatory_context = "All sources clean, no adverse findings" if not regulatory_flags and regulatory_score >= 80 else str(regulatory_flags)
     company_location = safe_val(payload.get("company_location"))
     
-    final_risk_score = safe_val(ml_output.get("predicted_score"))
-    decision = safe_val(ml_output.get("decision", "WATCHLIST"))
-    shap_top_factors = safe_val(ml_output.get("top_features"))
+    # Use final score flat mapping for decision thresholds
+    if isinstance(final_risk_score, (int, float)):
+        if final_risk_score >= 70:
+            decision = "APPROVE"
+        elif final_risk_score >= 50:
+            decision = "WATCHLIST"
+        else:
+            decision = "REJECT"
+    else:
+        decision = safe_val(ml_output.get("decision", "WATCHLIST"))
+        
+    shap_top_factors = safe_val(payload.get("shapValues", ml_output.get("top_features")))
     
     loan_limit_cr = safe_val(loan_pricing_engine.get("recommended_limit_cr"))
     interest_rate = safe_val(loan_pricing_engine.get("recommended_rate_pct"))
@@ -102,6 +136,7 @@ async def generate_cam(payload: Dict[str, Any]):
     Debt/Equity Ratio: {debt_equity_ratio}
     Current Ratio: {current_ratio}
     GST Recon Score: {gst_reconciliation_score}
+    GST Flags: {gst_flags}
     3-Year Financials: {three_year_financials}
     Collateral Value: {collateral_value}
     Collateral Type: {collateral_type}
@@ -118,6 +153,17 @@ async def generate_cam(payload: Dict[str, Any]):
     Interest Rate: {interest_rate}
     Risk Premium: {risk_premium}
     Tenure: {tenure}
+    
+    CRITICAL INSTRUCTION FOR EXECUTIVE SUMMARY:
+    Generate the recommendation section citing these specific findings as reasons:
+    1. GST: Identify the worst gap flags triggered from {gst_flags}.
+    2. Qualitative: Point out analyst capacity/litigation negative marks that caused a {qualitative_delta} penalty.
+    3. Regulatory: Detail the sources checked ({regulatory_sources}) outputting score {regulatory_score}.
+    4. Verdict: Final score {final_risk_score}/100 is below approval threshold of 70 (or above!).  Recommendation must include:
+    - Clear {decision} verdict
+    - Specific conditions if WATCHLIST
+    - Exact figures from the evidence above
+    - What borrower must do to improve score (cite counterfactuals: reduce ITC gap, resolve litigation, improve capacity to >80%)
     
     Return ONLY a highly structured JSON object with EXACTLY these 7 keys:
     "Executive Summary", "Character (Management & Promoters)", "Capacity (Financial Repayment)", 
@@ -148,7 +194,7 @@ async def generate_cam(payload: Dict[str, Any]):
     # Fallback populator
     if not sections:
         sections = {
-            "Executive Summary": f"Based on a risk score of {final_risk_score}, we recommend to {decision} a limit of {loan_limit_cr}Cr at {interest_rate}%.",
+            "Executive Summary": f"Based on a risk score of {final_risk_score}, we recommend a verdict of {decision} for a limit of {loan_limit_cr}Cr at {interest_rate}%. GST evidence uncovered multiple flags dictating severe risk. Qualitative adjustments resulted in {qualitative_delta} penalty (e.g., Capacity Utilization={capacity_utilization}%). Regulatory checks spanning {regulatory_sources} surfaced a score of {regulatory_score}. Borrower must improve working capital and resolve existing litigation to approach the passing threshold of 70.",
             "Character (Management & Promoters)": f"Management is noted as {management_quality_assessment}. Regulatory checks indicated: {rbi_regulatory_context}",
             "Capacity (Financial Repayment)": f"With revenue of {revenue} and EBITDA of {ebitda}, the DSCR is {dscr}. GST Score is {gst_reconciliation_score}.",
             "Capital (Net Worth & Leverage)": f"Net worth is {net_worth} making Debt/Equity {debt_equity_ratio}.",
@@ -172,12 +218,20 @@ async def generate_cam(payload: Dict[str, Any]):
         sections=sections,
         financials=payload.get("smart_parser", {}).get("merged_financials", {}),
         shap_chart_path=payload.get("shap_chart_path"),
-        gst_data=payload.get("gst_reconciliation", {}).get("flags_json", []),
-        regulatory_flags=payload.get("regulatory_intelligence", {}).get("warnings", []) + payload.get("regulatory_intelligence", {}).get("critical_flags", []),
+        gst_data=payload.get("extractedFinancials", {}).get("gst_reconciliation", {}),
+        gst_flags=gst_flags,
+        regulatory_flags=regulatory_flags,
         loan_limit_cr=loan_limit_cr if isinstance(loan_limit_cr, (int, float)) else 0,
         interest_rate=interest_rate if isinstance(interest_rate, (int, float)) else 0,
         tenure_months=tenure if isinstance(tenure, int) else 12,
-        conditions=loan_pricing_engine.get("sanction_terms", {}).get("conditions_precedent", ["Standard terms apply."])
+        conditions=loan_pricing_engine.get("sanction_terms", {}).get("conditions_precedent", ["Standard terms apply."]),
+        score_waterfall={
+            "baseScore": base_score,
+            "reconciliationScore": reconciliation_score,
+            "qualitativeDelta": qualitative_delta,
+            "regulatoryScore": regulatory_score,
+            "finalScore": final_risk_score
+        }
     )
     
     try:

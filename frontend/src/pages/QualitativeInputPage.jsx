@@ -84,7 +84,7 @@ export default function QualitativeInputPage() {
     const navigate = useNavigate();
 
     const state = location.state || {};
-    const baseScore = state.baseScore || (state.data?.ml_output?.predicted_score ? parseFloat(state.data.ml_output.predicted_score) : 68);
+    const baseScore = state.baseScore ?? (state.data?.ml_output?.predicted_score ? parseFloat(state.data.ml_output.predicted_score) : 68);
     const companyName = location.state?.companyName || location.state?.company_name || location.state?.data?.company_name || location.state?.data?.extracted_data?.company_name || "Sharma Textile Mills Pvt. Ltd";
     const initialRiskTier = state.riskTier || state.data?.ml_output?.decision || "WATCHLIST";
 
@@ -195,6 +195,9 @@ export default function QualitativeInputPage() {
                 adjustedScore: baseScore,
                 baseScore: baseScore,
                 companyName: companyName,
+                qualitativeDelta: 0,
+                qualitativeChips: [],
+                analystInputs: inputs,
                 adjustments: null,
                 summary_paragraph: ""
             }
@@ -208,6 +211,9 @@ export default function QualitativeInputPage() {
                 adjustedScore: displayScore,
                 baseScore: baseScore,
                 companyName: companyName,
+                qualitativeDelta: apiResult ? apiResult.final_delta : 0,
+                qualitativeChips: apiResult ? apiResult.breakdown : [],
+                analystInputs: inputs,
                 adjustments: apiResult ? apiResult.breakdown : null,
                 summary_paragraph: apiResult ? apiResult.summary_paragraph : ""
             }

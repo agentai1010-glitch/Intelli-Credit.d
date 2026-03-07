@@ -1,19 +1,25 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Globe, AlertTriangle, ArrowRight, Loader2 } from 'lucide-react';
-import { fetchEvidence } from '../api';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Search, Globe, AlertTriangle, ArrowRight, Loader2, CheckCircle } from 'lucide-react';
+import { fetchEvidence, checkRegulatoryIntelligence } from '../api';
 import { useAppContext } from '../context/AppContext';
 
 export default function EvidenceTimeline() {
     const { sessionData, updateSession } = useAppContext();
     const navigate = useNavigate();
+    const location = useLocation();
+    const state = location.state || {};
 
-    const defaultEntity = sessionData.nlpEntities?.find(e => e.type === 'ORG')?.text || 'Orbit Holdings';
+    const defaultEntity = state.companyName || sessionData.nlpEntities?.find(e => e.type === 'ORG')?.text || 'Orbit Holdings';
 
     const [searchTerm, setSearchTerm] = useState(defaultEntity);
     const [query, setQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [evidence, setEvidence] = useState(sessionData.evidence || []);
+
+    const [regulatoryScore, setRegulatoryScore] = useState(null);
+    const [regulatoryFlags, setRegulatoryFlags] = useState([]);
+    const [regulatorySources, setRegulatorySources] = useState([]);
 
     const handleSearch = async (e) => {
         e.preventDefault();
@@ -21,14 +27,94 @@ export default function EvidenceTimeline() {
 
         setIsSearching(true);
         try {
-            const results = await fetchEvidence(searchTerm, query);
-            setEvidence(results.results || []);
-            updateSession({ evidence: results.results || [] });
+            const [evidenceData, regulatoryData] = await Promise.all([
+                fetchEvidence(searchTerm, query),
+                checkRegulatoryIntelligence(searchTerm)
+            ]);
+
+            setEvidence(evidenceData.results || []);
+            updateSession({ evidence: evidenceData.results || [] });
+
+            if (regulatoryData) {
+                setRegulatoryScore(regulatoryData.regulatory_risk_score);
+                setRegulatoryFlags([...(regulatoryData.critical_flags || []), ...(regulatoryData.warnings || [])]);
+                setRegulatorySources(regulatoryData.sources_checked || []);
+            }
         } catch (err) {
             console.error(err);
         } finally {
             setIsSearching(false);
         }
+    };
+
+    const handleGenerateCAM = () => {
+        let finalScore = state.adjustedScore || state.baseScore || 0;
+        if (regulatoryScore !== null) {
+            if (regulatoryScore < 60) finalScore -= 20;
+            else if (regulatoryScore < 80) finalScore -= 5;
+        }
+
+        navigate('/cam', {
+            state: {
+                ...state,
+                regulatoryScore,
+                regulatoryFlags,
+                regulatorySources,
+                finalScore
+            }
+        });
+    };
+
+    const renderScoreImpact = () => {
+        if (regulatoryScore === null) return null;
+
+        let badgeColor = "bg-green-500/10 text-green-400 border-green-500/20";
+        let title = "All Sources Clean";
+        let text = "No adverse regulatory findings. Score impact: 0 points.";
+
+        if (regulatoryScore < 60) {
+            badgeColor = "bg-red-500/10 text-red-400 border-red-500/20";
+            title = "Critical Flags";
+            text = "Critical regulatory risk detected. Score impact: -20 points applied.";
+        } else if (regulatoryScore < 80) {
+            badgeColor = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+            title = "Minor Flags Found";
+            text = `${regulatoryFlags.length} findings noted. Score impact: -5 points applied.`;
+        }
+
+        const sources = ["MCA", "eCourts", "RBI", "IBBI"];
+
+        const getSourceStatusColor = (sourceName) => {
+            const flagged = regulatoryFlags.some(f => f.source === sourceName);
+            if (flagged) return "bg-red-500/10 text-red-400 border-red-500/20";
+            if (regulatorySources.includes(sourceName)) return "bg-green-500/10 text-green-400 border-green-500/20";
+            return "bg-amber-500/10 text-amber-500 border-amber-500/20";
+        };
+
+        return (
+            <div className="glass-panel p-6 mb-8 mt-6 relative z-10 transition-all duration-500 animate-in fade-in slide-in-from-bottom-4">
+                <h3 className="text-xl font-bold text-slate-200 mb-4">Regulatory Score Impact</h3>
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <div className="flex items-start gap-4 flex-1">
+                        <div className={`px-4 py-2 flex items-center gap-2 rounded-lg border font-bold ${badgeColor}`}>
+                            {regulatoryScore >= 80 ? <CheckCircle size={20} /> : <AlertTriangle size={20} />}
+                            {title}
+                        </div>
+                        <div>
+                            <p className="text-slate-300 font-medium">{text}</p>
+                            <p className="text-sm text-slate-500 mt-1">Raw regulatory score: {regulatoryScore}/100</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-2 flex-wrap md:justify-end">
+                        {sources.map(s => (
+                            <span key={s} className={`text-xs font-bold px-3 py-1 rounded border gap-1 flex items-center ${getSourceStatusColor(s)}`}>
+                                {s}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     return (
@@ -42,7 +128,7 @@ export default function EvidenceTimeline() {
                 </div>
                 <button
                     className="btn-primary flex items-center gap-2"
-                    onClick={() => navigate('/cam')}
+                    onClick={handleGenerateCAM}
                 >
                     Generate Final CAM <ArrowRight size={18} />
                 </button>
@@ -76,6 +162,9 @@ export default function EvidenceTimeline() {
                     {isSearching ? <Loader2 className="animate-spin" size={20} /> : 'Crawl & Index'}
                 </button>
             </form>
+
+            {/* Score Impact Panel */}
+            {renderScoreImpact()}
 
             {/* Evidence Timeline */}
             {evidence.length > 0 ? (

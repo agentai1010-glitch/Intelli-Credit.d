@@ -46,12 +46,18 @@ def extract_features(raw_text: str, document_data: Dict, entity_data: List[Dict]
         feature_dict["debt_equity_ratio"] = debt / equity
         
     # GST vs Bank match score (1.0 = perfect match, 0.0 = terrible match)
-    gst_turnover = document_data.get("gst_turnover", 0)
-    bank_credits = document_data.get("bank_credits", 0)
-    
-    if max(gst_turnover, bank_credits) > 0:
-        diff_pct = abs(gst_turnover - bank_credits) / max(gst_turnover, bank_credits)
-        feature_dict["gst_bank_match_score"] = max(0.0, 1.0 - diff_pct)
+    # The reconciler already gives us a 0-100 score, map it directly!
+    gst_score = document_data.get("gst_reconciliation_score")
+    if gst_score is not None:
+        feature_dict["gst_bank_match_score"] = float(gst_score)
+    else:
+        # Fallback ratio if no recon score provided
+        gst_turnover = document_data.get("gst_turnover", 0)
+        bank_credits = document_data.get("bank_credits", 0)
+        
+        if max(gst_turnover, bank_credits) > 0:
+            diff_pct = abs(gst_turnover - bank_credits) / max(gst_turnover, bank_credits)
+            feature_dict["gst_bank_match_score"] = max(0.0, 1.0 - diff_pct)
 
     # Number of red flags from entities (e.g., LAW type entities, NPA mentions)
     red_flag_count = 0

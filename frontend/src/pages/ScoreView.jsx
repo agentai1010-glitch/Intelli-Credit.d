@@ -180,7 +180,20 @@ export default function ScoreView() {
                     </h1>
                     <p className="text-slate-400 text-lg">Multi-model consensus output & interpretability maps</p>
                 </div>
-                <button className="btn-primary" onClick={() => navigate('/qualitative-input')}>Next: Qualitative Review</button>
+                <button className="btn-primary" onClick={() => navigate('/qualitative-input', {
+                    state: {
+                        baseScore: displayScore,
+                        companyName: sessionData.features?.company_name || 'Sharma Textile Mills Pvt. Ltd',
+                        riskTier: decision,
+                        loanLimit: termsData?.recommended_limit_cr + "Cr",
+                        interestRate: termsData?.recommended_rate_pct + "%",
+                        tenure: termsData?.sanction_terms?.tenure_months + "m",
+                        gstFlags: sessionData.gst_reconciliation?.flags || [],
+                        reconciliationScore: sessionData.gst_reconciliation?.reconciliation_score || 0,
+                        shapValues: curData?.explanation?.top_features || [],
+                        extractedFinancials: sessionData.features || {}
+                    }
+                })}>Next: Qualitative Review</button>
             </header>
 
             {/* Top Score Section Grid */}

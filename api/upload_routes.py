@@ -9,7 +9,7 @@ import shutil
 from ocr_pipeline.pdf_parser import extract_layout_text
 from ocr_pipeline.table_extractor import extract_tables, export_tables_to_json
 from ocr_pipeline.ocr_utils import run_ocr_with_tesseract
-from ml_engine.smart_parser import classify_document_type
+from ml_engine.smart_parser import classify_document_type, parse_by_type
 
 router = APIRouter()
 TEMP_DIR = "temp_uploads"
@@ -60,9 +60,11 @@ async def upload_documents(files: List[UploadFile] = File(...)):
         # Classify Document using ML Smart Parser
         try:
             class_result = classify_document_type(combined_text, file.filename)
+            parsed_data = parse_by_type(combined_text, class_result["document_type"])
         except Exception as e:
-            print(f"[upload] Document classification failed for {file.filename}: {e}")
-            class_result = {"document_type": "unknown", "confidence": 0.0}
+            print(f"[upload] Document classification/parsing failed for {file.filename}: {e}")
+            class_result = {"document_type": "UNKNOWN", "confidence": 0.0}
+            parsed_data = {"display": ["Error extracting fields"]}
 
         results.append({
             "filename": file.filename,
@@ -70,7 +72,8 @@ async def upload_documents(files: List[UploadFile] = File(...)):
             "confidence": class_result["confidence"],
             "extracted_text_blocks": text_blocks,
             "extracted_tables": tables_data,
-            "raw_ocr": raw_text
+            "raw_ocr": raw_text,
+            "extracted_fields": parsed_data
         })
         
     return {"status": "success", "processed_files": results}

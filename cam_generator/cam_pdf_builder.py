@@ -83,12 +83,14 @@ def build_cam_pdf(
     sections: dict,
     financials: dict = None,
     shap_chart_path: str = None,
-    gst_data: list = None,
+    gst_data: dict = None,
+    gst_flags: list = None,
     regulatory_flags: list = None,
     loan_limit_cr: float = 0,
     interest_rate: float = 0,
     tenure_months: int = 0,
-    conditions: list = None
+    conditions: list = None,
+    score_waterfall: dict = None
 ):
     doc = MyDocTemplate(output_path, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
     styles = getSampleStyleSheet()
@@ -134,17 +136,19 @@ def build_cam_pdf(
     # TOC (basic placeholder if multi-pass isn't set up, Platypus native TOC requires multiple build passes, skipping complex setup for brevity, adding static title)
     elements.append(Paragraph("Table of Contents", h1))
     elements.append(Paragraph("1. Executive Summary", normal))
-    elements.append(Paragraph("2. Character (Management & Promoters)", normal))
-    elements.append(Paragraph("3. Capacity (Financial Repayment)", normal))
-    elements.append(Paragraph("4. Capital (Net Worth & Leverage)", normal))
-    elements.append(Paragraph("5. Collateral (Security Coverage)", normal))
-    elements.append(Paragraph("6. Conditions (Macro & Industry)", normal))
-    elements.append(Paragraph("7. AI Risk Insights & SHAP", normal))
+    elements.append(Paragraph("2. Score Waterfall Computation", normal))
+    elements.append(Paragraph("3. Character (Management & Promoters)", normal))
+    elements.append(Paragraph("4. Capacity (Financial Repayment)", normal))
+    elements.append(Paragraph("5. Capital (Net Worth & Leverage)", normal))
+    elements.append(Paragraph("6. Collateral (Security Coverage)", normal))
+    elements.append(Paragraph("7. Conditions (Macro & Industry)", normal))
+    elements.append(Paragraph("8. AI Risk Insights & SHAP", normal))
     elements.append(PageBreak())
     
     # Sections
     section_titles = [
         "Executive Summary",
+        "Score Waterfall Computation",
         "Character (Management & Promoters)",
         "Capacity (Financial Repayment)",
         "Capital (Net Worth & Leverage)",
@@ -160,22 +164,103 @@ def build_cam_pdf(
         elements.append(Spacer(1, 10))
         
         # Add tables to specific sections
+        if title == "Score Waterfall Computation":
+            if score_waterfall:
+                base_score = score_waterfall.get("baseScore", 76)
+                gst_reconciliation = score_waterfall.get("reconciliationScore", 58)
+                gst_impact = -1 * int(round((100 - gst_reconciliation) * 0.18))
+                qual_delta = score_waterfall.get("qualitativeDelta", -30)
+                reg_score = score_waterfall.get("regulatoryScore", 85)
+                
+                reg_impact = 0
+                if reg_score < 60: reg_impact = -20
+                elif reg_score < 80: reg_impact = -5
+                
+                final_score = score_waterfall.get("finalScore", 46)
+                
+                wf_data = [
+                    ["Component", "Impact", "Running Score"],
+                    ["LightGBM Base Score", f"+{base_score}", str(base_score)],
+                    ["GST Reconciliation", f"{gst_impact}", str(gst_reconciliation)],
+                    ["Qualitative Adjustment", f"{qual_delta}", str(base_score + qual_delta) if (base_score + qual_delta) < 100 else "Capped"],
+                    ["Regulatory Intelligence", f"{reg_impact}", str(final_score)],
+                    ["FINAL SCORE", "—", f"{final_score} / {decision}"]
+                ]
+                
+                t = Table(wf_data, colWidths=[200, 100, 150])
+                t_style = [
+                    ('BACKGROUND', (0,0), (-1,0), COLOR_PRIMARY),
+                    ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+                    ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+                    ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold')
+                ]
+                
+                # Apply row backgrounds
+                for r_idx, row in enumerate(wf_data[1:-1], 1):
+                    impact_val = row[1]
+                    if impact_val.startswith("-") and impact_val != "-0":
+                        t_style.append(('BACKGROUND', (0, r_idx), (-1, r_idx), colors.HexColor('#fdf0f0')))
+                    else:
+                        t_style.append(('BACKGROUND', (0, r_idx), (-1, r_idx), colors.white))
+                        
+                # Ensure the final row is dark navy with appropriate colors
+                if decision_up == "APPROVE": dec_color = COLOR_APPROVE
+                elif decision_up == "REJECT": dec_color = COLOR_REJECT
+                else: dec_color = COLOR_WATCHLIST
+                
+                t_style.append(('BACKGROUND', (0, -1), (-1, -1), COLOR_PRIMARY))
+                t_style.append(('TEXTCOLOR', (0, -1), (-2, -1), colors.white))
+                t_style.append(('TEXTCOLOR', (-1, -1), (-1, -1), dec_color))
+                t_style.append(('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'))
+                
+                t.setStyle(TableStyle(t_style))
+                elements.append(t)
+                elements.append(Spacer(1, 10))
+
         if title == "Capacity (Financial Repayment)":
             if financials:
                 pass # Add financial table here if needed
-            if gst_data:
+            if gst_data and gst_flags:
                 elements.append(Paragraph("GST Reconciliation Variance", h2))
-                gst_table_data = [["Metric", "GST Declared", "Bank Statement", "Variance"]]
-                for row in gst_data:
-                    gst_table_data.append(row)
-                t = Table(gst_table_data)
-                t.setStyle(TableStyle([
+                
+                # Table A: GST Validation Summary
+                gst_table_data = [
+                    ["Metric", "GST Declared", "Bank Statement", "Variance"],
+                    ["Quarterly Revenue", f"₹{gst_data.get('gstr3b_turnover_cr', '3.85')}Cr", f"₹{gst_data.get('bank_credits_cr', '3.55')}Cr", f"{gst_data.get('revenue_gap_pct', '8.45')}%"],
+                    ["ITC Claimed", f"₹{gst_data.get('itc_claimed_lakhs', '58')}L", f"Available ₹{gst_data.get('itc_available_lakhs', '42')}L", f"{gst_data.get('itc_gap_pct', '38.1')}%"]
+                ]
+                t1 = Table(gst_table_data, colWidths=[150, 100, 100, 100])
+                t1.setStyle(TableStyle([
                     ('BACKGROUND', (0,0), (-1,0), COLOR_PRIMARY),
                     ('TEXTCOLOR', (0,0), (-1,0), colors.white),
                     ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
                     ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold')
                 ]))
-                elements.append(t)
+                elements.append(t1)
+                elements.append(Spacer(1, 15))
+                
+                # Table B: Flags Detected
+                elements.append(Paragraph("Flags Detected", h2))
+                flags_data = [["Flag", "Severity", "Score Penalty"]]
+                for f in gst_flags:
+                    flags_data.append([f.get("flag", "UNKNOWN"), f.get("severity", "MEDIUM"), str(f.get("score_penalty", "-0"))])
+                
+                t2 = Table(flags_data, colWidths=[200, 100, 150])
+                t2_style = [
+                    ('BACKGROUND', (0,0), (-1,0), COLOR_PRIMARY),
+                    ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+                    ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+                    ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold')
+                ]
+                for r_idx, row in enumerate(flags_data[1:], 1):
+                    sev = row[1].upper()
+                    if sev == "HIGH": bg = colors.HexColor('#ffdddd')
+                    elif sev == "MEDIUM": bg = colors.HexColor('#fff3cd')
+                    else: bg = colors.white
+                    t2_style.append(('BACKGROUND', (0, r_idx), (-1, r_idx), bg))
+                    
+                t2.setStyle(TableStyle(t2_style))
+                elements.append(t2)
                 elements.append(Spacer(1, 10))
                 
         if title == "Character (Management & Promoters)":

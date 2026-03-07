@@ -63,16 +63,21 @@ class CreditScoringModel:
         # Predict returns an array, take the first value
         raw_score = self.model.predict(features)[0]
         
-        # Scale score to strictly 0.0 - 1.0 bounds
-        score = max(0.0, min(1.0, float(raw_score)))
+        # Scale score to strictly 0.0 - 1.0 bounds (or 0-100)
+        # Assuming the model outputs probability of DEFAULT. 
+        # Convert it to a traditional credit score out of 100.
+        prob_default = max(0.0, min(1.0, float(raw_score)))
+        credit_score = int((1.0 - prob_default) * 100)
         
-        decision = "Approve"
-        if score > self.reject_threshold:
-            decision = "Reject"
-        elif score > self.watchlist_threshold:
-            decision = "Watchlist"
+        # User defined thresholds (APPROVE >= 70, WATCHLIST 50-69, REJECT < 50)
+        if credit_score >= 70:
+            decision = "APPROVE"
+        elif credit_score >= 50:
+            decision = "WATCHLIST"
+        else:
+            decision = "REJECT"
             
         return {
-            "predicted_score": round(score, 4),
+            "predicted_score": credit_score / 100.0, # Keep float response stable for APIs if needed, though int is clearer
             "decision": decision
         }

@@ -123,7 +123,7 @@ def detect_circular_trading(bank_text: str) -> dict:
     for amt, count in counts.items():
         if count >= 3:
             patterns_found.append(f"Round figure {amt:,.2f} appears {count} times.")
-            score_penalty += 5
+            score_penalty += 5 * count  # Penalty applies per occurrence
             confidence = max(confidence, 0.8)
             
     # 2. Matching debits and credits in the same window
@@ -146,7 +146,9 @@ def detect_circular_trading(bank_text: str) -> dict:
             score_penalty += 5
             confidence = max(confidence, 0.6)
             
-    score_penalty = min(score_penalty, 15)
+    # Do not hard cap penalty at 15 if there are multiple severe violations
+    # Alternatively cap higher, e.g. 50
+    score_penalty = min(score_penalty, 50)
     
     return {
         "circular_trading_detected": len(patterns_found) > 0,

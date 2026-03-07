@@ -50,4 +50,9 @@ export const loginUser = async (payload) => {
     return response.data;
 };
 
+export const checkRegulatoryIntelligence = async (companyName) => {
+    const response = await api.post('/regulatory/check', { company_name: companyName });
+    return response.data;
+};
+
 export default api;
