@@ -1,10 +1,14 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { FileText, Download, Edit3, Loader2, Sparkles } from 'lucide-react';
 import { generateCam } from '../api';
 import { useAppContext } from '../context/AppContext';
 
 export default function CAMGenerator() {
     const { sessionData } = useAppContext();
+    const location = useLocation();
+    const state = location.state || {};
+
     const [isGenerating, setIsGenerating] = useState(false);
     const [camUrl, setCamUrl] = useState(null);
     const [analystNotes, setAnalystNotes] = useState('');
@@ -17,15 +21,28 @@ export default function CAMGenerator() {
         setCamUrl(null);
         try {
             const payload = {
+                companyName: company,
                 company_name: company,
                 date: new Date().toISOString().split('T')[0],
                 entity_id: 'L12345MH2024PLC009999',
-                features: sessionData.features || {},
+                features: sessionData.features || state.extractedFinancials || {},
+                extractedFinancials: state.extractedFinancials || sessionData.features || {},
                 ml_output: sessionData.scoreResult || {},
                 entity_data: sessionData.nlpEntities || [],
                 evidence: sessionData.evidence || [],
                 notes: analystNotes,
-                user_id: sessionData?.user?.id
+                user_id: sessionData?.user?.id,
+                analystInputs: state.analystInputs || {},
+                loanLimit: state.loanLimit || state.loan_limit,
+                interestRate: state.interestRate || state.interest_rate,
+                tenure: state.tenure,
+                baseScore: state.baseScore,
+                adjustedScore: state.adjustedScore,
+                qualitativeDelta: state.qualitativeDelta,
+                regulatoryScore: state.regulatoryScore,
+                gstFlags: state.gstFlags,
+                reconciliationScore: state.reconciliationScore,
+                finalScore: state.finalScore
             };
 
             const responseBlob = await generateCam(payload);

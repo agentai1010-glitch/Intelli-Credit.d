@@ -20,16 +20,16 @@ def extract_features(raw_text: str, document_data: Dict, entity_data: List[Dict]
     text = str(raw_text).replace(',', '').lower()
     
     rev_match = re.search(r'revenue[^\d]*(\d+)', text)
-    revenue = float(rev_match.group(1)) if rev_match else document_data.get("extracted_revenue", 0)
+    revenue = float(rev_match.group(1)) if rev_match else document_data.get("extracted_revenue", document_data.get("revenue", 0))
     
     exp_match = re.search(r'expense[^\d]*(\d+)', text)
-    expenses = float(exp_match.group(1)) if exp_match else document_data.get("extracted_expenses", 0)
+    expenses = float(exp_match.group(1)) if exp_match else document_data.get("extracted_expenses", document_data.get("ebitda", 0))
     
     if expenses > 0:
         feature_dict["revenue_expense_ratio"] = revenue / expenses
         
     assets_match = re.search(r'current assets[^\d]*(\d+)', text)
-    current_assets = float(assets_match.group(1)) if assets_match else document_data.get("current_assets", 0)
+    current_assets = float(assets_match.group(1)) if assets_match else document_data.get("current_assets", document_data.get("net_worth", 0))
     
     liab_match = re.search(r'current liabilit[^\d]*(\d+)', text)
     current_liabilities = float(liab_match.group(1)) if liab_match else document_data.get("current_liabilities", 0)
@@ -37,19 +37,21 @@ def extract_features(raw_text: str, document_data: Dict, entity_data: List[Dict]
     feature_dict["working_capital"] = current_assets - current_liabilities
     
     debt_match = re.search(r'total debt[^\d]*(\d+)', text)
-    debt = float(debt_match.group(1)) if debt_match else document_data.get("total_debt", 0)
+    debt = float(debt_match.group(1)) if debt_match else document_data.get("total_debt", document_data.get("existing_debt", 0))
     
     equity_match = re.search(r'total equity[^\d]*(\d+)', text)
-    equity = float(equity_match.group(1)) if equity_match else document_data.get("total_equity", 0)
+    equity = float(equity_match.group(1)) if equity_match else document_data.get("total_equity", document_data.get("net_worth", 0))
     
     if equity > 0:
         feature_dict["debt_equity_ratio"] = debt / equity
+    elif "debt_equity_ratio" in document_data:
+        feature_dict["debt_equity_ratio"] = float(document_data.get("debt_equity_ratio", 0))
         
     # GST vs Bank match score (1.0 = perfect match, 0.0 = terrible match)
     # The reconciler already gives us a 0-100 score, map it directly!
-    gst_score = document_data.get("gst_reconciliation_score")
-    if gst_score is not None:
-        feature_dict["gst_bank_match_score"] = float(gst_score)
+    reconciliation_score = document_data.get("reconciliation_score", document_data.get("gst_reconciliation_score"))
+    if reconciliation_score is not None:
+        feature_dict["gst_bank_match_score"] = float(reconciliation_score) / 100.0
     else:
         # Fallback ratio if no recon score provided
         gst_turnover = document_data.get("gst_turnover", 0)

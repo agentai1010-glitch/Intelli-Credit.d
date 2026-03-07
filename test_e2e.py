@@ -141,11 +141,13 @@ print("="*60)
 qual_payload = {
     "company_name": "Sharma Textile Mills Pvt. Ltd.",
     "base_score": int(ml_score) if str(ml_score).isdigit() else 76,
-    "capacity_utilization": 5,
-    "management_quality": "AVERAGE",
-    "pending_litigation": True,
-    "industry_outlook": "FAVORABLE",
-    "site_visit_result": "NEUTRAL"
+    "inputs": {
+        "capacity_utilization": 5,
+        "management_quality": "AVERAGE",
+        "pending_litigation": True,
+        "industry_outlook": "FAVORABLE",
+        "site_visit_result": "NEUTRAL"
+    }
 }
 
 qual_resp = requests.post(f"{BASE}/api/v1/qualitative/adjust/", json=qual_payload)

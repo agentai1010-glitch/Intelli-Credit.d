@@ -84,11 +84,55 @@ export default function UploadPage() {
         const firstLine = allText.split('\n').map(l => l.trim()).filter(l => l.length > 5)[0] || "Unknown Entity";
         const cleanCompanyName = firstLine.replace(/[^a-zA-Z0-9\s]/g, '').slice(0, 50).trim();
 
+        const features = {};
+        const gst_reconciliation = {};
+
+        rawResponse.processed_files.forEach(f => {
+            const ext = f.extracted_fields || {};
+            const docType = f.document_type || "";
+            const fName = (f.filename || "").toLowerCase();
+
+            if (docType === "ANNUAL_REPORT") {
+                if (ext.revenue) features.revenue = ext.revenue;
+                if (ext.ebitda) features.ebitda = ext.ebitda;
+                if (ext.pat) features.pat = ext.pat;
+                if (ext.net_worth) features.net_worth = ext.net_worth;
+                if (ext.debt != null) features.existing_debt = ext.debt; // Also 0 is acceptable
+            } else if (docType === "BANK_STATEMENT") {
+                if (ext.total_credits) features.total_credits = ext.total_credits;
+                if (ext.closing_balance) features.closing_balance = ext.closing_balance;
+                if (ext.total_credits) gst_reconciliation.bank_credits = ext.total_credits;
+            } else if (docType === "GST_RETURN" && fName.includes("gstr3b")) {
+                if (ext.turnover) {
+                    features.turnover = ext.turnover;
+                    gst_reconciliation.turnover = ext.turnover;
+                }
+                if (ext.itc_claimed != null) {
+                    features.itc_claimed = ext.itc_claimed;
+                    gst_reconciliation.itc_claimed = ext.itc_claimed;
+                }
+                if (ext.output_tax) features.output_tax = ext.output_tax;
+            } else if (docType === "GSTR2A" || fName.includes("gstr2a")) {
+                if (ext.itc_available != null) {
+                    features.itc_available = ext.itc_available;
+                    gst_reconciliation.itc_available = ext.itc_available;
+                }
+            } else if (docType === "SANCTION_LETTER") {
+                if (ext.sanctioned_amount) features.sanctioned_amount = ext.sanctioned_amount;
+                if (ext.rate) features.rate = ext.rate;
+            }
+        });
+
+        if (features.net_worth !== undefined && features.existing_debt !== undefined) {
+            features.working_capital = features.net_worth - features.existing_debt;
+        }
+
         updateSession({
             companyName: cleanCompanyName,
             uploadedDocuments: rawResponse.processed_files,
             rawText: allText,
-            features: {},
+            features: features,
+            gst_reconciliation: gst_reconciliation,
             scoreResult: null,
             nlpEntities: [],
             evidence: [],

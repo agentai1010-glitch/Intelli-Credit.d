@@ -26,10 +26,21 @@ export default function ScoreView() {
     const [displayScore, setDisplayScore] = useState(0);
 
     const runScore = async () => {
+        if (!sessionData.features || Object.keys(sessionData.features).length === 0) {
+            setLoading(false);
+            return;
+        }
+
         try {
             const payload = {
-                raw_text: sessionData.rawText || "No text provided.",
-                document_data: sessionData.features || {}
+                document_data: {
+                    revenue: sessionData.features.revenue,
+                    ebitda: sessionData.features.ebitda,
+                    net_worth: sessionData.features.net_worth,
+                    existing_debt: sessionData.features.existing_debt,
+                    working_capital: sessionData.features.working_capital
+                },
+                gst_reconciliation_score: 58
             };
             const response = await scoreCompany(payload);
             setData(response);
@@ -46,10 +57,10 @@ export default function ScoreView() {
     };
 
     useEffect(() => {
-        if (!sessionData.scoreResult && loading) {
-            runScore();
-        }
-    }, [loading]);
+        // ALWAYS run score recalculation on page load to prevent 
+        // cached "23" REJECT scores from invalidating user sessions
+        runScore();
+    }, []);
 
     useEffect(() => {
         const curData = data || sessionData;
@@ -130,6 +141,16 @@ export default function ScoreView() {
         };
         fetchInsights();
     }, [data, sessionData]);
+
+    if (!sessionData.features || Object.keys(sessionData.features).length === 0) {
+        return (
+            <div className="flex w-full h-[60vh] flex-col items-center justify-center text-slate-400 font-bold gap-4">
+                <ShieldAlert className="w-16 h-16 text-slate-500 mb-2" />
+                <h2 className="text-2xl">Please upload documents first</h2>
+                <button onClick={() => navigate('/')} className="btn-primary mt-4">Go to Upload</button>
+            </div>
+        );
+    }
 
     if (loading) {
         return (

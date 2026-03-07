@@ -29,7 +29,7 @@ async def generate_cam(payload: Dict[str, Any]):
     smart_parser = payload.get("smart_parser", {})
     
     # Core mappings safely extracted for prompt
-    company_name = safe_val(payload.get("companyName"))
+    company_name = safe_val(payload.get("company_name", payload.get("companyName")))
     
     # Flat states passed from the pipeline
     base_score = payload.get("baseScore", 76)
@@ -57,10 +57,34 @@ async def generate_cam(payload: Dict[str, Any]):
     capacity_utilization = safe_val(analyst_inputs.get("capacity_utilization"))
     industry_outlook = safe_val(analyst_inputs.get("industry_outlook"))
     
-    years_in_business = safe_val(features.get("years_in_business"))
-    revenue = safe_val(features.get("revenue"))
-    ebitda = safe_val(features.get("ebitda"))
-    existing_debt = safe_val(features.get("existing_debt"))
+    # Financial fields: frontend sends these under 'extractedFinancials' (= sessionData.features from ScoreView)
+    ext_fin = payload.get("extractedFinancials", {})
+    # Also check legacy 'features' nested dict as fallback
+    features = payload.get("features", ext_fin)
+    
+    years_in_business = safe_val(ext_fin.get("years_in_business", features.get("years_in_business")))
+    
+    # Revenue/EBITDA may be in raw units (42.5 = Cr) or large ints (42500000)
+    def fmt_crore(val):
+        if val is None: return "Not provided"
+        v = float(val)
+        if v > 100000:  # raw rupees — convert to Cr
+            return f"₹{v/10000000:.2f}Cr"
+        return f"₹{v:.2f}Cr"
+    
+    revenue = fmt_crore(ext_fin.get("revenue", features.get("revenue")))
+    ebitda = fmt_crore(ext_fin.get("ebitda", features.get("ebitda")))
+    existing_debt = fmt_crore(ext_fin.get("debt", ext_fin.get("existing_debt", features.get("existing_debt"))))
+    net_worth = fmt_crore(ext_fin.get("net_worth", features.get("net_worth")))
+    
+    debt_equity_raw = ext_fin.get("debt_equity_ratio", features.get("debt_equity_ratio"))
+    debt_equity_ratio = f"{float(debt_equity_raw):.2f}x" if debt_equity_raw is not None else "Not provided"
+    
+    current_ratio_raw = ext_fin.get("current_ratio", features.get("current_ratio"))
+    current_ratio = f"{float(current_ratio_raw):.2f}x" if current_ratio_raw is not None else "Not provided"
+    
+    collateral_value = safe_val(ext_fin.get("collateral_value", features.get("collateral_value")))
+    collateral_type = safe_val(ext_fin.get("collateral_type", features.get("collateral_type")))
 
     # Calculate DSCR inline
     dscr = "Not provided"
@@ -71,29 +95,33 @@ async def generate_cam(payload: Dict[str, Any]):
             calc_dscr = eb_num / (ext_debt_num * 0.15)
             dscr = f"{calc_dscr:.2f}x"
 
-    qualitative_notes = safe_val(payload.get("qualitative_adjuster", {}).get("summary_paragraph"))
-    net_worth = safe_val(features.get("net_worth"))
-    debt_equity_ratio = safe_val(features.get("debt_equity_ratio"))
-    current_ratio = safe_val(features.get("current_ratio"))
-    
-    # Map gst flat score directly
+    qualitative_notes = safe_val(analyst_inputs.get("notes", payload.get("qualitativeChips", [])))
     gst_reconciliation_score = safe_val(reconciliation_score)
     three_year_financials = safe_val(smart_parser.get("merged_financials"))
-    collateral_value = safe_val(features.get("collateral_value"))
-    collateral_type = safe_val(features.get("collateral_type"))
 
-    # Limits and security
-    loan_limit = safe_val(loan_pricing_engine.get("recommended_limit_cr", features.get("requested_limit")))
+    # Loan terms: frontend sends as flat string keys from ScoreView state
+    # e.g. loanLimit: "5Cr", interestRate: "11.5%", tenure: "12m"
+    loan_limit = safe_val(payload.get("loanLimit",
+        loan_pricing_engine.get("recommended_limit_cr")))
+    interest_rate = safe_val(payload.get("interestRate",
+        loan_pricing_engine.get("recommended_rate_pct")))
+    risk_premium = safe_val(loan_pricing_engine.get("risk_premium"))
+    tenure = safe_val(payload.get("tenure",
+        loan_pricing_engine.get("tenure_months", 12)))
     
+    # Security coverage ratio
     security_coverage_ratio = "Not provided"
-    colval_num = features.get("collateral_value", 0)
-    limit_num = loan_pricing_engine.get("recommended_limit_cr", features.get("requested_limit", 0))
-    if isinstance(colval_num, (int, float)) and isinstance(limit_num, (int, float)):
-        if limit_num > 0:
-            calc_scr = colval_num / limit_num
-            security_coverage_ratio = f"{calc_scr:.2f}x"
-            
-    industry_outlook = safe_val(qualitative_adjuster.get("industry_outlook"))
+    colval_num_raw = ext_fin.get("collateral_value", features.get("collateral_value", 0))
+    limit_num_raw = loan_pricing_engine.get("recommended_limit_cr", 0)
+    try:
+        colval_num = float(colval_num_raw) if colval_num_raw else 0
+        limit_num = float(limit_num_raw) if limit_num_raw else 0
+        if colval_num > 0 and limit_num > 0:
+            if colval_num > 100000: colval_num /= 10000000  # convert to Cr
+            security_coverage_ratio = f"{colval_num / limit_num:.2f}x"
+    except (ValueError, TypeError):
+        pass
+    
     sector_news_summary = safe_val(payload.get("sector_news_summary"))
     rbi_regulatory_context = "All sources clean, no adverse findings" if not regulatory_flags and regulatory_score >= 80 else str(regulatory_flags)
     company_location = safe_val(payload.get("company_location"))

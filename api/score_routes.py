@@ -27,6 +27,14 @@ async def score_company(parsed_data: Dict[str, Any]):
     and returns a credit score with SHAP explainability.
     """
     document_data = parsed_data.get("document_data", {})
+    if not document_data:
+        document_data = parsed_data.get("features", {})
+    gst_data = parsed_data.get("gst_data", {})
+    if gst_data:
+        document_data["gst_reconciliation_score"] = gst_data.get("reconciliation_score", gst_data.get("itc_claimed", 58.0))
+        
+    if "gst_reconciliation_score" in parsed_data:
+        document_data["gst_reconciliation_score"] = parsed_data["gst_reconciliation_score"]
     raw_text = parsed_data.get("raw_text", "")
 
     # 1. Extract NLP Entities (fault-tolerant)
