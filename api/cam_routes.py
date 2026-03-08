@@ -66,11 +66,12 @@ async def generate_cam(payload: Dict[str, Any]):
     
     # Revenue/EBITDA may be in raw units (42.5 = Cr) or large ints (42500000)
     def fmt_crore(val):
-        if val is None: return "Not provided"
+        if val is None:
+            return "Not provided"
         v = float(val)
         if v > 100000:  # raw rupees — convert to Cr
-            return f"₹{v/10000000:.2f}Cr"
-        return f"₹{v:.2f}Cr"
+            return f"Rs.{v/10000000:.2f}Cr"
+        return f"Rs.{v:.2f}Cr"
     
     revenue = fmt_crore(ext_fin.get("revenue", features.get("revenue")))
     ebitda = fmt_crore(ext_fin.get("ebitda", features.get("ebitda")))
@@ -99,15 +100,24 @@ async def generate_cam(payload: Dict[str, Any]):
     gst_reconciliation_score = safe_val(reconciliation_score)
     three_year_financials = safe_val(smart_parser.get("merged_financials"))
 
-    # Loan terms: frontend sends as flat string keys from ScoreView state
-    # e.g. loanLimit: "5Cr", interestRate: "11.5%", tenure: "12m"
-    loan_limit = safe_val(payload.get("loanLimit",
-        loan_pricing_engine.get("recommended_limit_cr")))
-    interest_rate = safe_val(payload.get("interestRate",
-        loan_pricing_engine.get("recommended_rate_pct")))
+    # Loan terms: frontend sends as already formatted strings from ScoreView state
+    # e.g. loanLimit: "₹6.1Cr", interestRate: "10.75%", tenure: "12m"
+    loan_limit_display = payload.get("loanLimit")
+    interest_rate_display = payload.get("interestRate")
+    tenure_display = payload.get("tenure")
+
+    # Fallback to numeric engine outputs if front-end strings are missing
+    if not loan_limit_display and isinstance(loan_pricing_engine.get("recommended_limit_cr"), (int, float)):
+        loan_limit_display = f"Rs.{loan_pricing_engine['recommended_limit_cr']:.1f}Cr"
+    if not interest_rate_display and isinstance(loan_pricing_engine.get("recommended_rate_pct"), (int, float)):
+        interest_rate_display = f"{loan_pricing_engine['recommended_rate_pct']:.2f}%"
+    if not tenure_display:
+        tenure_display = f"{loan_pricing_engine.get('tenure_months', 12)}m"
+
+    loan_limit = safe_val(loan_limit_display)
+    interest_rate = safe_val(interest_rate_display)
     risk_premium = safe_val(loan_pricing_engine.get("risk_premium"))
-    tenure = safe_val(payload.get("tenure",
-        loan_pricing_engine.get("tenure_months", 12)))
+    tenure = safe_val(tenure_display)
     
     # Security coverage ratio
     security_coverage_ratio = "Not provided"
@@ -138,11 +148,6 @@ async def generate_cam(payload: Dict[str, Any]):
         decision = safe_val(ml_output.get("decision", "WATCHLIST"))
         
     shap_top_factors = safe_val(payload.get("shapValues", ml_output.get("top_features")))
-    
-    loan_limit_cr = safe_val(loan_pricing_engine.get("recommended_limit_cr"))
-    interest_rate = safe_val(loan_pricing_engine.get("recommended_rate_pct"))
-    risk_premium = safe_val(loan_pricing_engine.get("risk_premium"))
-    tenure = safe_val(loan_pricing_engine.get("tenure_months"))
 
     prompt = f"""
     You are a senior credit analyst writing a Credit Appraisal Memo (CAM).
@@ -177,7 +182,7 @@ async def generate_cam(payload: Dict[str, Any]):
     Final Risk Score: {final_risk_score}
     Decision: {decision}
     SHAP Top Factors: {shap_top_factors}
-    Loan Limit (Cr): {loan_limit_cr}
+    Loan Limit (Cr): {loan_limit}
     Interest Rate: {interest_rate}
     Risk Premium: {risk_premium}
     Tenure: {tenure}
@@ -222,7 +227,7 @@ async def generate_cam(payload: Dict[str, Any]):
     # Fallback populator
     if not sections:
         sections = {
-            "Executive Summary": f"Based on a risk score of {final_risk_score}, we recommend a verdict of {decision} for a limit of {loan_limit_cr}Cr at {interest_rate}%. GST evidence uncovered multiple flags dictating severe risk. Qualitative adjustments resulted in {qualitative_delta} penalty (e.g., Capacity Utilization={capacity_utilization}%). Regulatory checks spanning {regulatory_sources} surfaced a score of {regulatory_score}. Borrower must improve working capital and resolve existing litigation to approach the passing threshold of 70.",
+            "Executive Summary": f"Based on a risk score of {final_risk_score}, we recommend a verdict of {decision} for a limit of {loan_limit} at {interest_rate}. GST evidence uncovered multiple flags dictating severe risk. Qualitative adjustments resulted in {qualitative_delta} penalty (e.g., Capacity Utilization={capacity_utilization}%). Regulatory checks spanning {regulatory_sources} surfaced a score of {regulatory_score}. Borrower must improve working capital and resolve existing litigation to approach the passing threshold of 70.",
             "Character (Management & Promoters)": f"Management is noted as {management_quality_assessment}. Regulatory checks indicated: {rbi_regulatory_context}",
             "Capacity (Financial Repayment)": f"With revenue of {revenue} and EBITDA of {ebitda}, the DSCR is {dscr}. GST Score is {gst_reconciliation_score}.",
             "Capital (Net Worth & Leverage)": f"Net worth is {net_worth} making Debt/Equity {debt_equity_ratio}.",
@@ -249,8 +254,8 @@ async def generate_cam(payload: Dict[str, Any]):
         gst_data=payload.get("extractedFinancials", {}).get("gst_reconciliation", {}),
         gst_flags=gst_flags,
         regulatory_flags=regulatory_flags,
-        loan_limit_cr=loan_limit_cr if isinstance(loan_limit_cr, (int, float)) else 0,
-        interest_rate=interest_rate if isinstance(interest_rate, (int, float)) else 0,
+        loan_limit_cr=loan_limit,
+        interest_rate=interest_rate,
         tenure_months=tenure if isinstance(tenure, int) else 12,
         conditions=loan_pricing_engine.get("sanction_terms", {}).get("conditions_precedent", ["Standard terms apply."]),
         score_waterfall={

@@ -101,10 +101,10 @@ export default function QualitativeInputPage() {
 
     const [apiResult, setApiResult] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
-
+    
     const [displayScore, setDisplayScore] = useState(baseScore);
-    const targetScoreRef = useRef(baseScore);
     const debounceRef = useRef(null);
+    const animationRef = useRef(null);
 
     const fetchAdjustment = useCallback(async (currentInputs) => {
         const filledCount = Object.values(currentInputs).filter(v => v !== null && v !== "").length;
@@ -119,7 +119,6 @@ export default function QualitativeInputPage() {
             };
             const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/v1/qualitative/adjust/`, payload);
             setApiResult(res.data);
-            targetScoreRef.current = res.data.adjusted_score;
         } catch (error) {
             console.error("Qualitative API failed silently", error);
         } finally {
@@ -141,19 +140,40 @@ export default function QualitativeInputPage() {
     };
 
     useEffect(() => {
-        const target = targetScoreRef.current;
-        if (displayScore === target) return;
+        const target = apiResult?.adjusted_score ?? baseScore;
+        if (target == null) return;
 
-        const interval = setInterval(() => {
-            setDisplayScore((prev) => {
-                if (prev < target) return prev + 1;
-                if (prev > target) return prev - 1;
-                return prev;
-            });
-        }, 20);
+        if (animationRef.current) {
+            cancelAnimationFrame(animationRef.current);
+        }
 
-        return () => clearInterval(interval);
-    }, [displayScore]);
+        const startValue = displayScore;
+        const duration = 600;
+        let startTime = null;
+
+        const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+        const step = (timestamp) => {
+            if (startTime === null) startTime = timestamp;
+            const elapsed = timestamp - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = easeOutCubic(progress);
+            const nextValue = Math.round(startValue + (target - startValue) * eased);
+            setDisplayScore(nextValue);
+
+            if (progress < 1) {
+                animationRef.current = requestAnimationFrame(step);
+            }
+        };
+
+        animationRef.current = requestAnimationFrame(step);
+
+        return () => {
+            if (animationRef.current) {
+                cancelAnimationFrame(animationRef.current);
+            }
+        };
+    }, [apiResult, baseScore, displayScore]);
 
     const getTierColor = (score) => {
         if (score >= 70) return "#27ae60"; // APPROVE

@@ -17,7 +17,7 @@ def safe_str(val):
         return "Not provided"
     return str(val)
 
-def generate_sanction_terms_box(decision: str, loan_limit_cr: float, interest_rate: float, tenure_months: int, conditions: list):
+def generate_sanction_terms_box(decision: str, loan_limit_cr, interest_rate, tenure_months: int, conditions: list):
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
         'TermsTitle',
@@ -41,7 +41,7 @@ def generate_sanction_terms_box(decision: str, loan_limit_cr: float, interest_ra
     
     data = [
         [Paragraph(f"<b>Sanction Decision: {decision_up}</b>", ParagraphStyle('W', textColor=colors.white, fontName='Helvetica-Bold'))],
-        [Paragraph(f"<b>Facility Limit:</b> {loan_limit_cr} Cr<br/><b>Interest Rate:</b> {interest_rate}%<br/><b>Tenure:</b> {tenure_months} months", styles['Normal'])],
+        [Paragraph(f"<b>Facility Limit:</b> {safe_str(loan_limit_cr)}<br/><b>Interest Rate:</b> {safe_str(interest_rate)}<br/><b>Tenure:</b> {tenure_months} months", styles['Normal'])],
         [Paragraph(f"<b>Conditions:</b><br/>{cond_str}", styles['Normal'])]
     ]
     
@@ -173,17 +173,23 @@ def build_cam_pdf(
                 reg_score = score_waterfall.get("regulatoryScore", 85)
                 
                 reg_impact = 0
-                if reg_score < 60: reg_impact = -20
-                elif reg_score < 80: reg_impact = -5
+                if reg_score < 60:
+                    reg_impact = -20
+                elif reg_score < 80:
+                    reg_impact = -5
                 
-                final_score = score_waterfall.get("finalScore", 46)
+                # Running scores for each stage
+                gst_running = base_score + gst_impact
+                qual_running = gst_running + qual_delta
+                reg_running = qual_running + reg_impact
+                final_score = score_waterfall.get("finalScore", reg_running)
                 
                 wf_data = [
                     ["Component", "Impact", "Running Score"],
                     ["LightGBM Base Score", f"+{base_score}", str(base_score)],
-                    ["GST Reconciliation", f"{gst_impact}", str(gst_reconciliation)],
-                    ["Qualitative Adjustment", f"{qual_delta}", str(base_score + qual_delta) if (base_score + qual_delta) < 100 else "Capped"],
-                    ["Regulatory Intelligence", f"{reg_impact}", str(final_score)],
+                    ["GST Reconciliation", f"{gst_impact}", str(gst_running)],
+                    ["Qualitative Adjustment", f"{qual_delta}", str(qual_running)],
+                    ["Regulatory Intelligence", f"{reg_impact}", str(reg_running)],
                     ["FINAL SCORE", "—", f"{final_score} / {decision}"]
                 ]
                 
@@ -226,8 +232,8 @@ def build_cam_pdf(
                 # Table A: GST Validation Summary
                 gst_table_data = [
                     ["Metric", "GST Declared", "Bank Statement", "Variance"],
-                    ["Quarterly Revenue", f"₹{gst_data.get('gstr3b_turnover_cr', '3.85')}Cr", f"₹{gst_data.get('bank_credits_cr', '3.55')}Cr", f"{gst_data.get('revenue_gap_pct', '8.45')}%"],
-                    ["ITC Claimed", f"₹{gst_data.get('itc_claimed_lakhs', '58')}L", f"Available ₹{gst_data.get('itc_available_lakhs', '42')}L", f"{gst_data.get('itc_gap_pct', '38.1')}%"]
+                    ["Quarterly Revenue", f"Rs.{gst_data.get('gstr3b_turnover_cr', '3.85')}Cr", f"Rs.{gst_data.get('bank_credits_cr', '3.55')}Cr", f"{gst_data.get('revenue_gap_pct', '8.45')}%"],
+                    ["ITC Claimed", f"Rs.{gst_data.get('itc_claimed_lakhs', '58')}L", f"Available Rs.{gst_data.get('itc_available_lakhs', '42')}L", f"{gst_data.get('itc_gap_pct', '38.1')}%"]
                 ]
                 t1 = Table(gst_table_data, colWidths=[150, 100, 100, 100])
                 t1.setStyle(TableStyle([

@@ -13,8 +13,16 @@ export default function CAMGenerator() {
     const [camUrl, setCamUrl] = useState(null);
     const [analystNotes, setAnalystNotes] = useState('');
 
-    const company = sessionData.nlpEntities?.find(e => e.type === 'ORG')?.text || 'Unknown Company';
-    const score = sessionData.scoreResult?.predicted_score || 0;
+    const company =
+        state.companyName ||
+        sessionData.features?.company_name ||
+        sessionData.nlpEntities?.find(e => e.type === 'ORG')?.text ||
+        'Unknown Company';
+
+    const finalScore =
+        typeof state.adjustedScore === 'number'
+            ? state.adjustedScore
+            : Math.round((sessionData.scoreResult?.predicted_score || 0) * 100);
 
     const handleGenerate = async () => {
         setIsGenerating(true);
@@ -94,7 +102,7 @@ export default function CAMGenerator() {
                         </div>
                         <div className="flex flex-col">
                             <span className="text-xs font-bold uppercase tracking-widest text-slate-500">System Score</span>
-                            <span className="text-slate-300 font-medium">{Math.round(score * 100)} / 100</span>
+                            <span className="text-slate-300 font-medium">{finalScore} / 100</span>
                         </div>
                     </div>
 

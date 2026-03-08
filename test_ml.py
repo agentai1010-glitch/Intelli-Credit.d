@@ -5,30 +5,30 @@ from ml_engine.model import CreditScoringModel
 from ml_engine.explain import explain_prediction
 
 def run_test():
-    # Mock data mirroring OCR extraction output
+    # Mock data mirroring OCR extraction output for Sharma Textile Mills scenario
+    raw_text = """Revenue 1000000
+Current Assets 600000
+Current Liabilities 220000
+Total Debt 34000000
+Total Equity 58000000"""
+
     document_data = {
-        "extracted_revenue": 1000000,
-        "extracted_expenses": 800000,   # ratio = 1.25
-        "current_assets": 500000,
-        "current_liabilities": 300000,  # WC = +200000
-        "total_debt": 200000,
-        "total_equity": 400000,         # ratio = 0.5
-        "gst_turnover": 1000000,
-        "bank_credits": 950000,         # ~0.95 score
+        "revenue": 425000000,                 # 42.5 Cr
+        "ebitda": 26000000,                   # 2.6 Cr
+        "net_worth": 57800000,                # 5.78 Cr
+        "existing_debt": 33900000,            # 3.39 Cr
+        "gst_reconciliation_score": 58.0,
         "sector_risk": 0
     }
 
-    # Mock entity extraction (with one NPA mention)
+    # Mock entity extraction with no legal flags
     entity_data = [
-        {"type": "ORG", "text": "Orbit Holdings Ltd."},
-        {"type": "PERSON", "text": "Rakesh Mehta"},
-        {"type": "LAW", "text": "Insolvency Act filing detected"},
-        {"type": "ORG", "text": "Something about NPA"}
+        {"type": "ORG", "text": "Sharma Textile Mills Pvt. Ltd."}
     ]
 
     print("1. Extracting Features...")
-    features = extract_features(document_data, entity_data)
-    print("Features Extracted:\n", features)
+    features = extract_features(raw_text, document_data, entity_data)
+    print("Features Extracted:\n", features.to_dict(orient="records")[0])
 
     print("\n2. Initializing & Loading Model...")
     model = CreditScoringModel(reject_threshold=0.6, watchlist_threshold=0.3)
@@ -40,7 +40,20 @@ def run_test():
 
     print("\n4. Explaining Prediction with SHAP...")
     explanation = explain_prediction(model, features)
-    print("Explanation:\n", json.dumps(explanation, indent=2))
+
+    # Reformat into requested JSON shape
+    shap_values = {}
+    for item in explanation.get("top_features", []):
+        shap_values[item["feature"]] = item["impact"]
+
+    out = {
+        "shap_values": shap_values,
+        "feature_values": features.to_dict(orient="records")[0],
+        "base_value": None,
+        "predicted_value": explanation["predicted_score"]
+    }
+
+    print("Explanation JSON:\n", json.dumps(out, indent=2))
 
 if __name__ == "__main__":
     run_test()
