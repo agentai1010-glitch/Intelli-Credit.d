@@ -304,4 +304,28 @@ async def fetch_cam_history(user_id: str = None):
             return result.data
         except Exception as e:
             pass
+            
+    # Local fallback if Supabase limits out / isn't configured
+    history = []
+    import datetime
+    import uuid
+    if os.path.exists(REPORTS_DIR):
+        for filename in os.listdir(REPORTS_DIR):
+            if filename.endswith('.pdf'):
+                file_path = os.path.join(REPORTS_DIR, filename).replace('\\', '/')
+                mod_time = os.path.getmtime(file_path)
+                
+                c_name = filename.replace('CAM_', '').replace('.pdf', '').replace('_', ' ')
+                history.append({
+                    "id": str(uuid.uuid4()),
+                    "company_name": c_name if c_name else "Local Report",
+                    "credit_score": "Local",
+                    "disposition": "ARCHIVED",
+                    "pdf_path": file_path,
+                    "generated_at": datetime.datetime.fromtimestamp(mod_time).isoformat()
+                })
+        # Sort newest first
+        history.sort(key=lambda x: x["generated_at"], reverse=True)
+        return history
+    
     return []
