@@ -182,17 +182,19 @@ export default function ScoreView() {
         let unit = 'raw';
         if (key === 'working_capital') {
             unit = 'currency';
-        } else if (key === 'debt_equity_ratio' || key === 'current_ratio') {
+        } else if (key.includes('ratio')) {
             unit = 'ratio';
-        } else if (key === 'capacity_utilization') {
+        } else if (key.includes('capacity') || key.includes('utilization')) {
             unit = 'percent';
         } else if (
             key.includes('revenue') ||
             key.includes('turnover') ||
             key.includes('credits') ||
             key.includes('net_worth') ||
-            (key.includes('collateral') && !key.includes('ratio')) ||
-            (key.includes('debt') && !key.includes('ratio'))
+            key.includes('collateral') ||
+            key.includes('debt') ||
+            key.includes('liability') ||
+            key.includes('ebitda')
         ) {
             unit = 'currency';
         }
@@ -248,12 +250,12 @@ export default function ScoreView() {
                     </h1>
                     <p className="text-slate-400 text-lg">Multi-model consensus output & interpretability maps</p>
                 </div>
-                        <button className="btn-primary" onClick={() => navigate('/qualitative-input', {
+                <button className="btn-primary" onClick={() => navigate('/qualitative-input', {
                     state: {
                         baseScore: displayScore,
                         companyName: sessionData.features?.company_name || 'Sharma Textile Mills Pvt. Ltd',
                         riskTier: decision,
-                            loanLimit: formatLimitCr(termsData?.recommended_limit_cr),
+                        loanLimit: formatLimitCr(termsData?.recommended_limit_cr),
                         interestRate: termsData?.recommended_rate_pct + "%",
                         tenure: termsData?.sanction_terms?.tenure_months + "m",
                         gstFlags: sessionData.gst_reconciliation?.flags || [],
@@ -323,7 +325,12 @@ export default function ScoreView() {
                     <div className="flex-grow w-full h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <ComposedChart data={waterfallData} layout="vertical" margin={{ top: 0, right: 20, left: 30, bottom: 0 }}>
-                                <XAxis type="number" stroke="#94a3b8" domain={['dataMin - 10', 'dataMax + 10']} />
+                                <XAxis
+                                    type="number"
+                                    stroke="#94a3b8"
+                                    domain={['dataMin - 10', 'dataMax + 10']}
+                                    tickFormatter={(val) => Number(val).toFixed(1)}
+                                />
                                 <YAxis dataKey="name" type="category" width={120} tick={{ fill: '#cbd5e1', fontSize: 11 }} />
                                 <Tooltip
                                     cursor={{ fill: 'rgba(255,255,255,0.05)' }}

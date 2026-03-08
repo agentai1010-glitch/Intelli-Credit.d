@@ -27,6 +27,12 @@ def explain_prediction(model_instance, features: pd.DataFrame) -> Dict[str, Any]
     try:
         explainer = shap.TreeExplainer(booster)
         shap_values = explainer.shap_values(features)
+        
+        import numpy as np
+        if isinstance(explainer.expected_value, (list, np.ndarray)):
+            base_value = float(explainer.expected_value[1] if isinstance(shap_values, list) else explainer.expected_value[0])
+        else:
+            base_value = float(explainer.expected_value)
 
         # For regression: shap_values is 2D [samples x features]
         # For multiclass: it's a list — use positive class
@@ -46,16 +52,18 @@ def explain_prediction(model_instance, features: pd.DataFrame) -> Dict[str, Any]
                 "impact": round(float(val), 4)
             })
 
-        # Sort by absolute magnitude, return top 5
+        # Sort by absolute magnitude, return all
         impacts.sort(key=lambda x: abs(x["impact"]), reverse=True)
-        top_features = impacts[:5]
+        top_features = impacts
 
     except Exception as e:
         print(f"[explain] SHAP computation failed: {e}")
         top_features = []
+        base_value = None
 
     return {
         "predicted_score": prediction_info["predicted_score"],
         "decision": prediction_info["decision"],
-        "top_features": top_features
+        "top_features": top_features,
+        "base_value": base_value
     }

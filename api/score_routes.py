@@ -14,7 +14,7 @@ router = APIRouter()
 # ── Load model ONCE at startup ──
 scoring_model = CreditScoringModel()
 try:
-    scoring_model.load_model("model_artifacts/lgbm_mock_model.pkl")
+    scoring_model.load_model("model_artifacts/mock_model.txt")
     print("[score_routes] LightGBM model loaded successfully.")
 except Exception as e:
     print(f"[score_routes] WARNING: Model load failed: {e}. Scoring will fall back to defaults.")

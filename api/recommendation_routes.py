@@ -99,7 +99,19 @@ class CounterfactualResponse(BaseModel):
 @router.post("/counterfactual", response_model=CounterfactualResponse)
 async def get_counterfactuals(payload: CounterfactualRequest):
     try:
-        res = compute_counterfactuals(payload.features, payload.risk_score, payload.shap_values)
+        f = dict(payload.features)
+        
+        # Hydrate ratio features if missing from raw inputs
+        if "revenue_expense_ratio" not in f and f.get("revenue", 0) > 0:
+            f["revenue_expense_ratio"] = f.get("ebitda", 0) / f.get("revenue", 1)
+            
+        if "working_capital" not in f:
+            f["working_capital"] = f.get("net_worth", 0) - f.get("existing_debt", 0)
+            
+        if "debt_equity_ratio" not in f and f.get("net_worth", 0) > 0:
+            f["debt_equity_ratio"] = f.get("existing_debt", 0) / f.get("net_worth", 1)
+
+        res = compute_counterfactuals(f, payload.risk_score, payload.shap_values)
         return {"counterfactuals": res}
     except Exception as e:
         print(f"Error in counterfactuals: {e}")

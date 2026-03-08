@@ -16,34 +16,28 @@ def extract_features(raw_text: str, document_data: Dict, entity_data: List[Dict]
         "sector_risk_flag": 0
     }
     
-    # Simple regex search across raw_text to find actual financial figures!
+    # New feature definitions per user request
     text = str(raw_text).replace(',', '').lower()
     
     rev_match = re.search(r'revenue[^\d]*(\d+)', text)
     revenue = float(rev_match.group(1)) if rev_match else document_data.get("extracted_revenue", document_data.get("revenue", 0))
     
-    exp_match = re.search(r'expense[^\d]*(\d+)', text)
-    expenses = float(exp_match.group(1)) if exp_match else document_data.get("extracted_expenses", document_data.get("ebitda", 0))
+    ebitda_match = re.search(r'ebitda[^\d]*(\d+)', text)
+    ebitda = float(ebitda_match.group(1)) if ebitda_match else document_data.get("extracted_expenses", document_data.get("ebitda", 0))
     
-    if expenses > 0:
-        feature_dict["revenue_expense_ratio"] = revenue / expenses
+    if revenue > 0:
+        feature_dict["revenue_expense_ratio"] = ebitda / revenue
         
-    assets_match = re.search(r'current assets[^\d]*(\d+)', text)
-    current_assets = float(assets_match.group(1)) if assets_match else document_data.get("current_assets", document_data.get("net_worth", 0))
+    net_worth_match = re.search(r'net worth[^\d]*(\d+)', text)
+    net_worth = float(net_worth_match.group(1)) if net_worth_match else document_data.get("net_worth", 0)
     
-    liab_match = re.search(r'current liabilit[^\d]*(\d+)', text)
-    current_liabilities = float(liab_match.group(1)) if liab_match else document_data.get("current_liabilities", 0)
+    debt_match = re.search(r'existing debt[^\d]*(\d+)', text)
+    existing_debt = float(debt_match.group(1)) if debt_match else document_data.get("existing_debt", document_data.get("total_debt", 0))
     
-    feature_dict["working_capital"] = current_assets - current_liabilities
+    feature_dict["working_capital"] = net_worth - existing_debt
     
-    debt_match = re.search(r'total debt[^\d]*(\d+)', text)
-    debt = float(debt_match.group(1)) if debt_match else document_data.get("total_debt", document_data.get("existing_debt", 0))
-    
-    equity_match = re.search(r'total equity[^\d]*(\d+)', text)
-    equity = float(equity_match.group(1)) if equity_match else document_data.get("total_equity", document_data.get("net_worth", 0))
-    
-    if equity > 0:
-        feature_dict["debt_equity_ratio"] = debt / equity
+    if net_worth > 0:
+        feature_dict["debt_equity_ratio"] = existing_debt / net_worth
     elif "debt_equity_ratio" in document_data:
         feature_dict["debt_equity_ratio"] = float(document_data.get("debt_equity_ratio", 0))
         

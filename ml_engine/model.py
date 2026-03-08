@@ -31,19 +31,75 @@ class CreditScoringModel:
                 except Exception:
                     pass
         if not os.path.exists(path_or_artifact):
-            print(f"Model not found at {path_or_artifact}. Initializing untrained mock booster.")
-            # Dummy training data to fit LightGBM schema
+            print(f"Model not found at {path_or_artifact}. Initializing and training new model.")
+            
+            # Generate 500 training samples
+            np.random.seed(42)
+            
+            # APPROVE cases
+            n_app = 300
+            app_wc = np.random.uniform(15_000_000, 80_000_000, n_app)
+            app_rer = np.random.uniform(0.08, 0.22, n_app)
+            app_der = np.random.uniform(0.3, 1.2, n_app)
+            app_gst = np.random.uniform(0.60, 0.95, n_app)
+            app_lfc = np.zeros(n_app)
+            app_srt = np.zeros(n_app)
+            
+            # WATCHLIST cases
+            n_wa = 100
+            wa_wc = np.random.uniform(8_000_000, 30_000_000, n_wa)
+            wa_rer = np.random.uniform(0.05, 0.12, n_wa)
+            wa_der = np.random.uniform(0.9, 1.8, n_wa)
+            wa_gst = np.random.uniform(0.45, 0.70, n_wa)
+            wa_lfc = np.random.randint(0, 2, n_wa)
+            wa_srt = np.random.randint(0, 2, n_wa)
+            
+            # REJECT cases
+            n_rej = 100
+            rej_wc = np.random.uniform(-5_000_000, 15_000_000, n_rej)
+            rej_rer = np.random.uniform(0.01, 0.09, n_rej)
+            rej_der = np.random.uniform(1.2, 3.5, n_rej)
+            rej_gst = np.random.uniform(0.20, 0.60, n_rej)
+            rej_lfc = np.random.randint(1, 5, n_rej)
+            rej_srt = np.random.randint(0, 2, n_rej)
+            
+            # Combine
+            X_app = np.column_stack((app_rer, app_wc, app_der, app_gst, app_lfc, app_srt))
+            X_wa = np.column_stack((wa_rer, wa_wc, wa_der, wa_gst, wa_lfc, wa_srt))
+            X_rej = np.column_stack((rej_rer, rej_wc, rej_der, rej_gst, rej_lfc, rej_srt))
+            
+            X = np.vstack((X_app, X_wa, X_rej))
+            
+            # Add Gaussian noise: +/- 10% roughly
+            X = X * np.random.normal(1.0, 0.05, X.shape)
+            
+            # Explicit rule for labels to enforce correct SHAP directions
+            # Col Mapping: 0=rer, 1=wc, 2=der, 3=gst, 4=lfc, 5=srt
+            default_probability = (
+                - 0.3 * X[:, 3] 
+                + 0.25 * X[:, 2] 
+                - 0.2 * (X[:, 1] / 100_000_000.0) 
+                + 0.3 * (X[:, 4] / 5.0) 
+                - 0.1 * X[:, 0] 
+                + 0.1 * X[:, 5]
+                + 0.38 + np.random.normal(0, 0.3, len(X))
+            )
+            y = np.where(default_probability > 0.5, 1, 0)
+            
             train_data = lgb.Dataset(
-                data=np.array([
-                    [1.2, 200000, 0.5, 0.9, 0, 0], 
-                    [0.8, -50000, 2.0, 0.4, 3, 1]
-                ]),
-                label=[0.1, 0.9], # 0.1 = Approve (Low risk), 0.9 = Reject (High risk)
+                data=X,
+                label=y,
                 feature_name=["revenue_expense_ratio", "working_capital", "debt_equity_ratio", 
                               "gst_bank_match_score", "legal_flag_count", "sector_risk_flag"]
             )
-            params = {'objective': 'regression', 'verbose': -1, 'min_data_in_leaf': 1}
-            self.model = lgb.train(params, train_data, num_boost_round=10)
+            params = {
+                'objective': 'regression', 
+                'verbose': -1, 
+                'max_depth': 5,
+                'learning_rate': 0.05,
+                'min_child_samples': 5
+            }
+            self.model = lgb.train(params, train_data, num_boost_round=200)
             
             # Save the mock model for future loads
             try:
