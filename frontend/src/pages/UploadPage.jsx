@@ -139,7 +139,30 @@ export default function UploadPage() {
             camUrl: null
         });
 
-        navigate('/score');
+        const debt_equity = features.net_worth ? (features.existing_debt || 0) / features.net_worth : 0.586;
+        const revenue_expense = features.revenue ? (features.ebitda || 0) / features.revenue : 0.143;
+        const working_cap = features.net_worth && features.existing_debt !== undefined
+            ? features.net_worth - features.existing_debt
+            : 58000000;
+
+        const computed6 = {
+            debt_equity_ratio: debt_equity,
+            revenue_expense_ratio: revenue_expense,
+            working_capital: working_cap,
+            gst_bank_match_score: 0.58,
+            legal_flag_count: 0,
+            sector_risk_flag: 0
+        };
+
+        navigate('/feature-intelligence', {
+            state: {
+                companyName: cleanCompanyName,
+                extractedFinancials: features,
+                gstFlags: [],
+                reconciliationScore: 58,
+                computedFeatures: computed6
+            }
+        });
     };
 
     return (
