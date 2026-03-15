@@ -82,42 +82,52 @@ async def scrape_google_news(company_name: str) -> list:
     flags = []
     adverse_keywords = ["insolvency", "fraud", "defaulter", "nclt", "cbi", "regulatory action", "penalty", "wilful defaulter"]
     
-    async with httpx.AsyncClient() as client:
-        tasks = []
-        for query in queries:
-            encoded_query = urllib.parse.quote(query)
-            url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-IN&gl=IN&ceid=IN:en"
-            tasks.append(fetch_with_retry(client, url))
-        
-        responses = await asyncio.gather(*tasks, return_exceptions=True)
-        
-        for res in responses:
-            if isinstance(res, Exception): continue
-            if res.status_code == 200:
-                root = ET.fromstring(res.text)
-                for item in root.findall('.//item'):
-                    title_el = item.find('title')
-                    desc_el = item.find('description')
-                    link_el = item.find('link')
-                    
-                    title = title_el.text if title_el is not None else ""
-                    desc = desc_el.text if desc_el is not None else ""
-                    link = link_el.text if link_el is not None else ""
-                    
-                    text_to_check = (title + " " + desc).lower()
-                    core_name = company_name.lower().replace(" ltd.", "").replace(" pvt.", "").replace(" private", "").replace(" limited", "").strip()
-                    
-                    if core_name in text_to_check:
-                        if any(kw in text_to_check for kw in adverse_keywords) or "ed raid" in text_to_check:
-                            flags.append({
-                                "source": "Google News Intelligence",
-                                "date": datetime.now().isoformat(),
-                                "type": "Adverse News",
-                                "severity": "ADVERSE",
-                                "detail": f"News article found: {title}",
-                                "source_url": link,
-                                "scraped_at": datetime.now().isoformat()
-                            })
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=5.0)) as client:
+            tasks = []
+            for query in queries:
+                encoded_query = urllib.parse.quote(query)
+                url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-IN&gl=IN&ceid=IN:en"
+                tasks.append(fetch_with_retry(client, url))
+            
+            # Wrap all queries in a global 15s timeout to prevent UI hang
+            print(f"[CRAWLER] Launching {len(tasks)} parallel news queries...")
+            responses = await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=15.0)
+            
+            for i, res in enumerate(responses):
+                if isinstance(res, Exception):
+                    print(f"[CRAWLER] Query {i} failed/timed out softly: {res}")
+                    continue
+                if res.status_code == 200:
+                    root = ET.fromstring(res.text)
+                    for item in root.findall('.//item'):
+                        title_el = item.find('title')
+                        desc_el = item.find('description')
+                        link_el = item.find('link')
+                        
+                        title = title_el.text if title_el is not None else ""
+                        desc = desc_el.text if desc_el is not None else ""
+                        link = link_el.text if link_el is not None else ""
+                        
+                        text_to_check = (title + " " + desc).lower()
+                        # STRICTOR ACCURACY FILTER: Must contain core clean company name
+                        core_name = company_name.lower().replace(" ltd.", "").replace(" pvt.", "").replace(" private", "").replace(" limited", "").strip()
+                        
+                        if core_name in text_to_check:
+                            if any(kw in text_to_check for kw in adverse_keywords) or "ed raid" in text_to_check:
+                                flags.append({
+                                    "source": "Google News Intelligence",
+                                    "date": datetime.now().isoformat(),
+                                    "type": "Adverse News",
+                                    "severity": "ADVERSE",
+                                    "detail": f"News article found: {title}",
+                                    "source_url": link,
+                                    "scraped_at": datetime.now().isoformat()
+                                })
+    except asyncio.TimeoutError:
+        print("[CRAWLER] Global News Crawl timed out (15s). Proceeding with document intelligence only.")
+    except Exception as e:
+        print(f"[CRAWLER] News Scrape encountered error: {e}")
                             
     return flags
 
