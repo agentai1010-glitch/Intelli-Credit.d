@@ -7,6 +7,7 @@ pdf2image
 opencv-python-headless
 langdetect
 pandas
+sarvamai
 
 # NLP & Text
 --extra-index-url https://download.pytorch.org/whl/cpu
@@ -33,6 +34,7 @@ faiss-cpu
 # Database & Vector Store
 supabase
 pinecone-client
+pageindex
 
 # API & Orchestration
 fastapi
@@ -51,6 +53,7 @@ httpx
 # Auth & Security
 python-jose
 bcrypt
+python-dotenv
 
 # Math & Data
 pydantic

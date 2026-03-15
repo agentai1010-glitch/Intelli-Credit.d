@@ -18,11 +18,26 @@ from api.recommendation_routes import router as recommendation_router
 from api.regulatory_routes import router as regulatory_router
 from api.chatbot_routes import router as chatbot_router
 
+from dotenv import load_dotenv
+load_dotenv()
+
 app = FastAPI(
     title="Intelli-Credit API",
     description="API for AI-Powered Credit Appraisal Engine",
     version="1.0.0"
 )
+
+# Debug: Print loaded env status (masked)
+print("--- ENV STATUS ---")
+for key in ["SARVAM_API_KEY", "PAGEINDEX_API_KEY", "OPENAI_API_KEY", "SUPABASE_URL"]:
+    val = os.getenv(key)
+    if val and len(val) > 4:
+        print(f"{key}: Loaded (ends with ...{val[-4:]})")
+    elif val:
+        print(f"{key}: Loaded (masked)")
+    else:
+        print(f"{key}: MISSING")
+print("------------------")
 
 os.makedirs("generated_cams", exist_ok=True)
 app.mount("/generated_cams", StaticFiles(directory="generated_cams"), name="generated_cams")
