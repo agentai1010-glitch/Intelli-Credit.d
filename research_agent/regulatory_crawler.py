@@ -82,25 +82,21 @@ async def scrape_google_news(company_name: str) -> list:
     flags = []
     adverse_keywords = ["insolvency", "fraud", "defaulter", "nclt", "cbi", "regulatory action", "penalty", "wilful defaulter"]
     
-    try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=5.0)) as client:
-            tasks = []
-            for query in queries:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(15.0, connect=5.0)) as client:
+        for i, query in enumerate(queries):
+            try:
                 encoded_query = urllib.parse.quote(query)
                 url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-IN&gl=IN&ceid=IN:en"
-                tasks.append(fetch_with_retry(client, url))
-            
-            # Wrap all queries in a global 15s timeout to prevent UI hang
-            print(f"[CRAWLER] Launching {len(tasks)} parallel news queries...")
-            responses = await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=15.0)
-            
-            for i, res in enumerate(responses):
-                if isinstance(res, Exception):
-                    print(f"[CRAWLER] Query {i} failed/timed out softly: {res}")
-                    continue
+                
+                print(f"[CRAWLER] Checking source {i+1}/{len(queries)}: {query}...")
+                res = await fetch_with_retry(client, url)
+                
                 if res.status_code == 200:
                     root = ET.fromstring(res.text)
-                    for item in root.findall('.//item'):
+                    items = root.findall('.//item')
+                    print(f"[CRAWLER] Found {len(items)} potential signals for query {i+1}")
+                    
+                    for item in items:
                         title_el = item.find('title')
                         desc_el = item.find('description')
                         link_el = item.find('link')
@@ -124,10 +120,8 @@ async def scrape_google_news(company_name: str) -> list:
                                     "source_url": link,
                                     "scraped_at": datetime.now().isoformat()
                                 })
-    except asyncio.TimeoutError:
-        print("[CRAWLER] Global News Crawl timed out (15s). Proceeding with document intelligence only.")
-    except Exception as e:
-        print(f"[CRAWLER] News Scrape encountered error: {e}")
+            except Exception as e:
+                print(f"[CRAWLER] Soft skip for query '{query}' due to network: {e}")
                             
     return flags
 

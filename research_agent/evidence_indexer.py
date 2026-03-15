@@ -35,19 +35,27 @@ def index_evidence(entity_name: str, evidence_list: List[Dict]) -> None:
         print("Embeddings model or Supabase not available. Skipping true indexing.")
         return
         
-    records = []
+    texts_to_embed = []
+    metadata = []
     
     for item in evidence_list:
         article = item.get("article", {})
-        text_to_embed = f"{article.get('title', '')} {article.get('content', '')}"
-        
-        if not text_to_embed.strip():
-            continue
+        text = f"{article.get('title', '')} {article.get('content', '')}".strip()
+        if text:
+            texts_to_embed.append(text)
+            metadata.append(item)
             
-        # Encode natively via sentence-transformers
-        vector = embedding_model.encode(text_to_embed).tolist()
+    if not texts_to_embed:
+        return
         
-        # Build document for DB schema
+    print(f"[INDEXER] Generating embeddings for {len(texts_to_embed)} articles...")
+    # Batch encode is 5-10x faster than a loop on CPU
+    vectors = embedding_model.encode(texts_to_embed).tolist()
+    
+    records = []
+    for i, vector in enumerate(vectors):
+        item = metadata[i]
+        article = item.get("article", {})
         records.append({
             "entity_name": entity_name,
             "title": article.get("title", ""),
