@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UploadCloud, FileType, CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
-import { uploadDocuments } from '../api';
+import { uploadDocuments, checkRegulatoryIntelligence } from '../api';
 import { useAppContext } from '../context/AppContext';
 
 export default function UploadPage() {
@@ -10,7 +10,8 @@ export default function UploadPage() {
     const [parsedResults, setParsedResults] = useState([]);
     const [rawResponse, setRawResponse] = useState(null);
     const [error, setError] = useState(null);
-    const { updateSession } = useAppContext();
+    const [isCrawling, setIsCrawling] = useState(false);
+    const { sessionData, updateSession } = useAppContext();
     const navigate = useNavigate();
 
     const handleDrop = useCallback((e) => {
@@ -35,6 +36,15 @@ export default function UploadPage() {
 
     const handleUpload = async () => {
         if (files.length === 0) return;
+        // MUST clear previous session to prevent data leakage between company runs
+        updateSession({
+            companyName: null,
+            uploadedDocuments: [],
+            features: {},
+            scoreResult: null,
+            regulatoryFlags: [],
+            regulatoryScore: null
+        });
         setProgressStep(1);
         setError(null);
         try {
@@ -71,7 +81,7 @@ export default function UploadPage() {
         }
     };
 
-    const handleContinueToScore = () => {
+    const handleContinueToScore = async () => {
         if (!rawResponse) return;
         const allText = rawResponse.processed_files.map(f => {
             let text = f.raw_ocr || "";
@@ -81,8 +91,37 @@ export default function UploadPage() {
             return text;
         }).join(' ');
 
-        const firstLine = allText.split('\n').map(l => l.trim()).filter(l => l.length > 5)[0] || "Unknown Entity";
-        const cleanCompanyName = firstLine.replace(/[^a-zA-Z0-9\s]/g, '').slice(0, 50).trim();
+        // Resolve Company Name: Prioritize LLM-extracted name over OCR first line
+        let cleanCompanyName = "";
+        rawResponse.processed_files.forEach(f => {
+            if (f.extracted_fields?.company_name && !cleanCompanyName) {
+                cleanCompanyName = f.extracted_fields.company_name;
+            }
+        });
+
+        if (!cleanCompanyName) {
+            const firstLine = allText.split('\n').map(l => l.trim()).filter(l => l.length > 5)[0] || "Unknown Entity";
+            cleanCompanyName = firstLine
+                .replace(/Annual Report|Financial Statement|FY\s?\d{2}-?\d{2}|FY\d{4}|Audited Report|Table of Contents/gi, '')
+                .replace(/[^a-zA-Z0-9\s]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .slice(0, 50);
+        }
+
+        // Dynamically extract company name from any processed document
+        let extractedName = "";
+        rawResponse.processed_files.forEach(f => {
+            if (f.extracted_fields?.company_name) {
+                extractedName = f.extracted_fields.company_name;
+            }
+        });
+
+        if (extractedName) {
+            cleanCompanyName = extractedName;
+        } else if (!cleanCompanyName || cleanCompanyName.length < 3) {
+            cleanCompanyName = "Uploaded Entity"; 
+        }
 
         const features = {};
         const gst_reconciliation = {};
@@ -98,6 +137,8 @@ export default function UploadPage() {
                 if (ext.pat) features.pat = ext.pat;
                 if (ext.net_worth) features.net_worth = ext.net_worth;
                 if (ext.debt != null) features.existing_debt = ext.debt; // Also 0 is acceptable
+                if (ext.sector) features.sector = ext.sector;
+                if (ext.auditor_qualification) features.auditor_qualification = ext.auditor_qualification;
             } else if (docType === "BANK_STATEMENT") {
                 if (ext.total_credits) features.total_credits = ext.total_credits;
                 if (ext.closing_balance) features.closing_balance = ext.closing_balance;
@@ -127,42 +168,180 @@ export default function UploadPage() {
             features.working_capital = features.net_worth - features.existing_debt;
         }
 
-        updateSession({
-            companyName: cleanCompanyName,
-            uploadedDocuments: rawResponse.processed_files,
-            rawText: allText,
-            features: features,
-            gst_reconciliation: gst_reconciliation,
-            scoreResult: null,
-            nlpEntities: [],
-            evidence: [],
-            camUrl: null
-        });
-
-        const debt_equity = features.net_worth ? (features.existing_debt || 0) / features.net_worth : 0.586;
-        const revenue_expense = features.revenue ? (features.ebitda || 0) / features.revenue : 0.143;
-        const working_cap = features.net_worth && features.existing_debt !== undefined
+        const debt_equity = features.net_worth ? (features.existing_debt || 0) / features.net_worth : 0;
+        const revenue_expense = features.revenue ? (features.ebitda || 0) / features.revenue : 0;
+        const working_cap = (features.net_worth !== undefined && features.existing_debt !== undefined)
             ? features.net_worth - features.existing_debt
-            : 58000000;
+            : 0;
 
-        const computed6 = {
-            debt_equity_ratio: debt_equity,
-            revenue_expense_ratio: revenue_expense,
-            working_capital: working_cap,
-            gst_bank_match_score: 0.58,
-            legal_flag_count: 0,
-            sector_risk_flag: 0
-        };
+        // --- Toughened GST-Bank-ITC Match Score ---
+        let gst_match = 1.0; // Default to perfect match if no docs provided to challenge it
+        const gstTurnover = gst_reconciliation.turnover || 0;
+        const bankCredits = gst_reconciliation.bank_credits || 0;
+        const itcClaimed = gst_reconciliation.itc_claimed;
+        const itcAvailable = gst_reconciliation.itc_available;
 
-        navigate('/feature-intelligence', {
-            state: {
-                companyName: cleanCompanyName,
-                extractedFinancials: features,
-                gstFlags: [],
-                reconciliationScore: 58,
-                computedFeatures: computed6
+        if (gstTurnover > 0 && bankCredits > 0) {
+            // Calculate individual match scores (1.0 = perfect)
+            const turnoverMatch = 1 - (Math.abs(gstTurnover - bankCredits) / Math.max(gstTurnover, bankCredits));
+            
+            let itcMatch = 1.0;
+            if (itcClaimed != null && itcAvailable != null && Math.max(itcClaimed, itcAvailable) > 0) {
+                const itcGap = Math.abs(itcClaimed - itcAvailable) / Math.max(itcClaimed, itcAvailable);
+                // Penalize ITC gaps more heavily (e.g. 1.5x weight on the gap)
+                itcMatch = Math.max(0, 1 - (itcGap * 1.5));
             }
-        });
+
+            // Use Multiplicative logic instead of Average to ensure worst signal dominates
+            gst_match = turnoverMatch * itcMatch;
+            
+            // Apply further penalty if any match is below 0.8
+            if (turnoverMatch < 0.9 || itcMatch < 0.8) {
+                gst_match *= 0.9;
+            }
+        } else if (gstTurnover > 0 || bankCredits > 0) {
+            gst_match = 0.35;
+        }
+        gst_match = Math.min(1.0, Math.round(gst_match * 100) / 100);
+
+        // --- Dynamic Legal Flag Count ---
+        // We now rely on Verified Regulatory findings and Ner Entities 
+        // Simple OCR keyword search is too noisy for real 300-page reports
+        let legalFlags = 0;
+        const legalAdverseFlags = [];
+        
+        // We will sum these in the next block after the crawl is complete
+        // but initialize the base count to 0 to avoid false positives.
+
+        // GST-specific structural flags (Reconciliation mismatches)
+        const gstStructuralFlags = [];
+        if (gstTurnover > 0 && bankCredits > 0) {
+            const gap = Math.abs(gstTurnover - bankCredits) / Math.max(gstTurnover, bankCredits);
+            if (gap > 0.1) gstStructuralFlags.push(`Significant Gap between Turnover & Bank Credits: ${(gap * 100).toFixed(1)}%`);
+        }
+        if (itcClaimed != null && itcAvailable != null) {
+            const gap = Math.abs(itcClaimed - itcAvailable) / Math.max(itcClaimed, itcAvailable);
+            if (gap > 0.1) gstStructuralFlags.push(`ITC Discrepancy detected: ${(gap * 100).toFixed(1)}%`);
+        }
+
+        // --- Dynamic Sector Risk Flag ---
+        const sectorRaw = (features.sector || '').toLowerCase();
+        const highRiskSectors = ['real estate', 'construction', 'mining', 'gems',
+            'jewelry', 'jewellery', 'textiles', 'cryptocurrency', 'chit fund'];
+        const sectorRisk = highRiskSectors.some(s => sectorRaw.includes(s)) ? 1 : 0;
+
+        // --- Node 3: External Intelligence (Regulatory Crawl) ---
+        setIsCrawling(true);
+        setError(null);
+        
+        try {
+            console.log(`[EXTERNAL INTEL] Starting crawl for: ${cleanCompanyName}`);
+            const regulatoryResult = await checkRegulatoryIntelligence(cleanCompanyName);
+            
+            let newsLegalContribution = 0;
+            let adverseNewsCount = 0;
+            let regScore = 100;
+
+            if (regulatoryResult) {
+                const criticalFlags = regulatoryResult.critical_flags || [];
+                // Only count "ADVERSE" severity flags as per user request
+                adverseNewsCount = criticalFlags.filter(f => f.severity === "ADVERSE").length;
+                newsLegalContribution = Math.min(adverseNewsCount, 2); // cap at 2
+                regScore = regulatoryResult.regulatory_risk_score || 85;
+            }
+
+            const finalLegalFlagCount = legalFlags + newsLegalContribution;
+
+            const finalFeatures = {
+                ...features,
+                gst_bank_match_score: gst_match,
+                legal_flag_count: finalLegalFlagCount,
+                sector_risk_flag: sectorRisk,
+                working_capital: working_cap,
+                debt_equity_ratio: debt_equity,
+                revenue_expense_ratio: revenue_expense,
+                regulatory_adverse_count: adverseNewsCount, // keep for CAM
+                regulatory_score: regScore
+            };
+
+            // Save all computed features to session context
+            updateSession({
+                companyName: cleanCompanyName,
+                uploadedDocuments: rawResponse.processed_files,
+                rawText: allText,
+                features: finalFeatures,
+                gst_reconciliation: gst_reconciliation,
+                scoreResult: null,
+                nlpEntities: [],
+                evidence: [],
+                camUrl: null,
+                regulatoryScore: regScore,
+                regulatoryFlags: regulatoryResult ? [...(regulatoryResult.critical_flags || []), ...(regulatoryResult.warnings || [])] : [],
+                regulatorySources: regulatoryResult ? (regulatoryResult.sources_checked || []) : []
+            });
+
+            const computed6 = {
+                debt_equity_ratio: debt_equity,
+                revenue_expense_ratio: revenue_expense,
+                working_capital: working_cap,
+                gst_bank_match_score: gst_match,
+                legal_flag_count: finalLegalFlagCount,
+                sector_risk_flag: sectorRisk
+            };
+
+            console.log('[SCORE PAYLOAD] Final features with Regulatory Intel:', computed6);
+
+            navigate('/evidence', {
+                state: {
+                    companyName: cleanCompanyName,
+                    extractedFinancials: features,
+                    gstFlags: gstStructuralFlags,
+                    legalAdverseFlags: legalAdverseFlags,
+                    reconciliationScore: Math.round(gst_match * 100),
+                    computedFeatures: computed6
+                }
+            });
+        } catch (crawlErr) {
+            console.error("[EXTERNAL INTEL] Crawl failed", crawlErr);
+            // Fallback: Proceed with document-only features if crawl fails
+            const finalFeatures = {
+                ...features,
+                gst_bank_match_score: gst_match,
+                legal_flag_count: legalFlags,
+                sector_risk_flag: sectorRisk,
+                working_capital: working_cap,
+                debt_equity_ratio: debt_equity,
+                revenue_expense_ratio: revenue_expense
+            };
+
+            updateSession({
+                companyName: cleanCompanyName,
+                uploadedDocuments: rawResponse.processed_files,
+                rawText: allText,
+                features: finalFeatures,
+                gst_reconciliation: gst_reconciliation
+            });
+
+            navigate('/evidence', {
+                state: {
+                    companyName: cleanCompanyName,
+                    extractedFinancials: features,
+                    gstFlags: gstStructuralFlags,
+                    legalAdverseFlags: legalAdverseFlags,
+                    reconciliationScore: Math.round(gst_match * 100),
+                    computedFeatures: {
+                        debt_equity_ratio: debt_equity,
+                        revenue_expense_ratio: revenue_expense,
+                        working_capital: working_cap,
+                        gst_bank_match_score: gst_match,
+                        legal_flag_count: legalFlags,
+                        sector_risk_flag: sectorRisk
+                    }
+                }
+            });
+        } finally {
+            setIsCrawling(false);
+        }
     };
 
     return (
@@ -225,13 +404,14 @@ export default function UploadPage() {
                             <button onClick={handleUpload} className="btn-primary flex items-center gap-2">
                                 Run Smart Pipeline <ArrowRight size={20} />
                             </button>
-                        ) : progressStep < 5 ? (
-                            <div className="flex items-center gap-3 bg-blue-500/10 px-4 py-2 rounded-xl text-blue-300 font-medium">
+                        ) : progressStep < 5 || isCrawling ? (
+                            <div className="flex items-center gap-3 bg-blue-500/10 px-4 py-2 rounded-xl text-blue-300 font-medium border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
                                 <Loader2 className="animate-spin" size={20} />
-                                {progressStep === 1 && "1/4 Extracting OCR Text..."}
-                                {progressStep === 2 && "2/4 Type Detection..."}
-                                {progressStep === 3 && "3/4 Field Extraction..."}
-                                {progressStep === 4 && "4/4 Cross Verification..."}
+                                {progressStep === 1 && "1/5 Extracting OCR Text..."}
+                                {progressStep === 2 && "2/5 Type Detection..."}
+                                {progressStep === 3 && "3/5 Field Extraction..."}
+                                {progressStep === 4 && "4/5 Cross Verification..."}
+                                {isCrawling && "5/5 External Intel Crawl..."}
                             </div>
                         ) : (
                             <button onClick={handleContinueToScore} className="btn-primary bg-emerald-500 hover:bg-emerald-400 border-none shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center gap-2">

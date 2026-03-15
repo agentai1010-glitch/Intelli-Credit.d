@@ -17,9 +17,9 @@ export default function EvidenceTimeline() {
     const [isSearching, setIsSearching] = useState(false);
     const [evidence, setEvidence] = useState(sessionData.evidence || []);
 
-    const [regulatoryScore, setRegulatoryScore] = useState(null);
-    const [regulatoryFlags, setRegulatoryFlags] = useState([]);
-    const [regulatorySources, setRegulatorySources] = useState([]);
+    const [regulatoryScore, setRegulatoryScore] = useState(sessionData.regulatoryScore || null);
+    const [regulatoryFlags, setRegulatoryFlags] = useState(sessionData.regulatoryFlags || []);
+    const [regulatorySources, setRegulatorySources] = useState(sessionData.regulatorySources || []);
 
     const handleSearch = async (e) => {
         e.preventDefault();
@@ -37,7 +37,8 @@ export default function EvidenceTimeline() {
 
             if (regulatoryData) {
                 setRegulatoryScore(regulatoryData.regulatory_risk_score);
-                setRegulatoryFlags([...(regulatoryData.critical_flags || []), ...(regulatoryData.warnings || [])]);
+                const allFlags = [...(regulatoryData.critical_flags || []), ...(regulatoryData.warnings || [])];
+                setRegulatoryFlags(allFlags);
                 setRegulatorySources(regulatoryData.sources_checked || []);
             }
         } catch (err) {
@@ -47,46 +48,54 @@ export default function EvidenceTimeline() {
         }
     };
 
-    const handleGenerateCAM = () => {
-        let finalScore = state.adjustedScore || state.baseScore || 0;
-        if (regulatoryScore !== null) {
-            if (regulatoryScore < 60) finalScore -= 20;
-            else if (regulatoryScore < 80) finalScore -= 5;
-        }
-
-        navigate('/cam', {
+    const handleNext = () => {
+        navigate('/feature-intelligence', {
             state: {
                 ...state,
+                legalAdverseFlags: state.legalAdverseFlags || [],
                 regulatoryScore,
                 regulatoryFlags,
-                regulatorySources,
-                finalScore
+                regulatorySources
             }
         });
     };
 
     const renderScoreImpact = () => {
-        if (regulatoryScore === null) return null;
+        if (regulatoryScore === null || evidence.length === 0) return null;
+
+        const trueAdverseCount = regulatoryFlags.filter(f => f.severity === 'ADVERSE' || f.severity === 'HIGH').length;
+        const restrictedCount = regulatoryFlags.filter(f => f.severity === 'RESTRICTED').length;
 
         let badgeColor = "bg-green-500/10 text-green-400 border-green-500/20";
         let title = "All Sources Clean";
         let text = "No adverse regulatory findings. Score impact: 0 points.";
 
-        if (regulatoryScore < 60) {
+        if (trueAdverseCount > 0) {
             badgeColor = "bg-red-500/10 text-red-400 border-red-500/20";
             title = "Critical Flags";
-            text = "Critical regulatory risk detected. Score impact: -20 points applied.";
+            text = `${trueAdverseCount} adverse regulatory finding(s) detected. High risk profile.`;
         } else if (regulatoryScore < 80) {
             badgeColor = "bg-amber-500/10 text-amber-400 border-amber-500/20";
-            title = "Minor Flags Found";
-            text = `${regulatoryFlags.length} findings noted. Score impact: -5 points applied.`;
+            title = "Warnings Found";
+            text = `Regulatory score marginally low. Manual review of sources recommended.`;
+        } else if (restrictedCount > 0) {
+            badgeColor = "bg-blue-500/10 text-blue-400 border-blue-500/20";
+            title = "Manual Check Required";
+            text = `${restrictedCount} source(s) require manual verification (access restricted).`;
         }
 
         const sources = ["MCA", "eCourts", "RBI", "IBBI"];
 
         const getSourceStatusColor = (sourceName) => {
-            const flagged = regulatoryFlags.some(f => f.source === sourceName);
-            if (flagged) return "bg-red-500/10 text-red-400 border-red-500/20";
+            const flagged = regulatoryFlags.find(f => f.source === sourceName);
+            if (flagged) {
+                if (flagged.severity === 'ADVERSE' || flagged.severity === 'HIGH') {
+                    return "bg-red-500/10 text-red-400 border-red-500/20";
+                }
+                if (flagged.severity === 'RESTRICTED') {
+                    return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+                }
+            }
             if (regulatorySources.includes(sourceName)) return "bg-green-500/10 text-green-400 border-green-500/20";
             return "bg-amber-500/10 text-amber-500 border-amber-500/20";
         };
@@ -128,9 +137,9 @@ export default function EvidenceTimeline() {
                 </div>
                 <button
                     className="btn-primary flex items-center gap-2"
-                    onClick={handleGenerateCAM}
+                    onClick={handleNext}
                 >
-                    Generate Final CAM <ArrowRight size={18} />
+                    Analyze Feature Intelligence <ArrowRight size={18} />
                 </button>
             </header>
 
@@ -177,21 +186,27 @@ export default function EvidenceTimeline() {
                             <div className="glass-panel w-full md:w-[45%] p-6 ml-6 md:ml-0 hover:-translate-y-1 transition duration-300 shadow-xl shadow-blue-900/10">
                                 <div className="flex justify-between items-start mb-3 border-b border-slate-700/30 pb-3">
                                     <span className="text-xs font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full">{item.source || 'News Source'}</span>
-                                    <span className="text-xs text-slate-500">{new Date().toLocaleDateString()}</span>
+                                    <span className="text-xs text-slate-500">{item.date || new Date().toLocaleDateString()}</span>
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-200 mb-2 leading-tight">
                                     <a href={item.url} target="_blank" rel="noreferrer" className="hover:text-blue-400 transition">{item.title}</a>
                                 </h3>
                                 <p className="text-sm text-slate-400 line-clamp-3 mb-4">{item.content}</p>
 
-                                {/* Risk Tags */}
                                 {item.tags && item.tags.length > 0 && (
                                     <div className="flex flex-wrap gap-2">
-                                        {item.tags.map(tag => (
-                                            <span key={tag} className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20">
-                                                <AlertTriangle size={12} /> {tag}
-                                            </span>
-                                        ))}
+                                        {item.tags.map(tag => {
+                                            const isPositive = ['STABLE', 'NO_ADVERSE_NEWS'].includes(tag);
+                                            const tagColor = isPositive 
+                                                ? "bg-green-500/10 text-green-400 border-green-500/20" 
+                                                : "bg-red-500/10 text-red-400 border-red-500/20";
+                                                
+                                            return (
+                                                <span key={tag} className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded border ${tagColor}`}>
+                                                    {isPositive ? <CheckCircle size={12} /> : <AlertTriangle size={12} />} {tag}
+                                                </span>
+                                            );
+                                        })}
                                     </div>
                                 )}
                                 {item.search_distance && (

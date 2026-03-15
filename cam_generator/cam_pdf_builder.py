@@ -15,7 +15,10 @@ COLOR_REJECT = colors.HexColor('#c0392b')
 def safe_str(val):
     if val is None or val == "": 
         return "Not provided"
-    return str(val)
+    s = str(val)
+    s = s.replace('\u25a0', '').replace('\u25cf', '')  # strip ■ and ●
+    s = s.strip()
+    return s if s else "Not provided"
 
 def generate_sanction_terms_box(decision: str, loan_limit_cr, interest_rate, tenure_months: int, conditions: list):
     styles = getSampleStyleSheet()
@@ -310,6 +313,6 @@ def build_cam_pdf(
     return output_path
 
 if __name__ == "__main__":
-    elements = generate_sanction_terms_box("APPROVE", 7.225, 11.25, 12, ["Execution of MFA", "Audited financials required"])
+    elements = generate_sanction_terms_box("APPROVE", 7.65, 11.25, 12, ["Execution of MFA", "Audited financials required"])
     print("Function runs without error.")
     print("ReportLab elements returned:", [e.__class__.__name__ for e in elements])

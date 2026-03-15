@@ -1,0 +1,183 @@
+
+--- mock_annual_report.pdf ---
+Type: ANNUAL_REPORT
+Parsed fields: ['Revenue ₹42.50Cr', 'EBITDA ₹6.10Cr', 'PAT ₹2.80Cr']
+Combined Text:  Sharma Textile Mills Pvt. Ltd. - Annual Report Welcome to the annual report for the fiscal year. The Board of Directors is pleased to present the
+financial results. The Chairman has noted that the overall revenue for the period saw significant
+improvement. The Auditor has reviewed the statements and provided an unqualified opinion on the
+fairness of the reporting. This annual report aims to give shareholders a transparent look at our
+operations and financial health. a there your that had they they was for what we it from had one all
+to but there they you his for to each they it have it he are but or we one on by but in from use from
+their there one were there word have they do each can how be use as for be his on or had on of
+had each as their she is at one when do I can and had do be which how what I with with she the
+that in had he if have in were on do said I if for to were that it was use word your are in what she
+how she to is was not word the with use was were of is I use their were your this are of do but in an
+their were what are use in word have was can as not do at for are the to each this in from the do to
+if or were his do their said we on you how they use which were we each on what when this if all said
+we for their have you all for as he I your or his you an to as not an I can are that were is be do with
+can said at this with have are when do not your all have she as and they word do have each a one
+we was from with each an or use all Total Assets
+I 28,00,00,000 Net Worth
+I 14,00,00,000 Debt
+I 8,20,00,000 Metric
+FY2023
+FY2024
+FY2025 revenue (Cr)
+I 35.0
+I 38.0
+I 42.5 EBITDA (Cr)
+I 4.2
+I 4.8
+I 6.1 PAT (Cr)
+I 1.8
+I 2.1
+I 2.8 revenue (Cr) n 35.0 n 38.0 n 42.5 EBITDA (Cr) n 4.2 n 4.8 n 6.1 PAT (Cr) n 1.8 n 2.1 n 2.8
+
+--- mock_bank_statement.pdf ---
+Type: BANK_STATEMENT
+Parsed fields: ['Credits ₹3.55Cr', 'Debits ₹3.43Cr', 'Closing ₹12.45L']
+Combined Text:  HDFC Bank - Account Statement This is an official bank statement generated for Sharma Textile Mills. The Account Number
+associated with these records is 50100234567890. Each transaction date is carefully logged
+chronologically. The transaction columns specify whether an amount was a Debit or a Credit. At the
+end of the specified period, the closing balance is verified and recorded accurately. of I which one
+use are we as in was at is to is for one one use there when your your for which word it all each to
+can were what for one if a can his all be can be or we when you one as an and word for in for were
+what from we be what all he all had were use his he do one there word it was an we how can but if
+from not I there at their she to had when use for your was this how at your at was all that there were
+by one which I the in he one an they was are and I had have and this he had be for be use their
+when this there at I he but not each each which all in I use from as of we a a had from with by one
+how is you by their when not was the from when is she is his the this that of use for do she do have
+if or from have your can in can on by what their with I do as when you what to all she with it this be
+word the a your their which he use and on it she his we which an of this all use are his use how how
+have your you by with each by it from all this but she in were this was this which transaction date Description
+Debit (I)
+Credit (I)
+Balance (I) 10-Apr-2024
+INWARD REM
+1,673,652.00
+1,673,652.00 16-Apr-2024
+VENDOR PAY
+3,726,467.00
+-2,052,815.00 22-Apr-2024
+INWARD REM
+1,879,041.00
+-173,774.00 03-May-2024
+VENDOR PAY
+2,432,530.00
+-2,606,304.00 14-May-2024
+VENDOR PAY
+2,709,305.00
+-5,315,609.00 26-May-2024
+VENDOR PAY
+4,644,959.00
+-9,960,568.00 02-Jun-2024
+VENDOR PAY
+7,128,949.00
+-17,089,517.00 07-Jun-2024
+INWARD REM
+2,236,166.00
+-14,853,351.00 12-Jun-2024
+INWARD REM
+5,000,000.00
+-9,853,351.00 23-Jun-2024
+VENDOR PAY
+4,828,496.00
+-14,681,847.00 26-Jun-2024
+INWARD REM
+1,282,858.00
+-13,398,989.00 02-Jul-2024
+INWARD REM
+8,103,790.00
+-5,295,199.00 11-Jul-2024
+INWARD REM
+5,000,000.00
+-295,199.00 15-Jul-2024
+INWARD REM
+2,525,707.00
+2,230,508.00 26-Jul-2024
+VENDOR PAY
+2,143,903.00
+86,605.00 06-Aug-2024
+INWARD REM
+1,514,887.00
+1,601,492.00 15-Aug-2024
+INWARD REM
+1,283,899.00
+2,885,391.00 25-Aug-2024
+VENDOR PAY
+4,841,341.00
+-1,955,950.00 27-Aug-2024
+VENDOR PAY
+1,798,820.00
+-3,754,770.00 04-Sep-2024
+INWARD REM
+5,000,000.00
+1,245,230.00 closing balance
+3,42,54,770.00
+3,55,00,000.00
+12,45,230.00 10-Apr-2024 INWARD REM   1,673,652.00 1,673,652.00 16-Apr-2024 VENDOR PAY  3,726,467.00  -2,052,815.00 22-Apr-2024 INWARD REM   1,879,041.00 -173,774.00 03-May-2024 VENDOR PAY  2,432,530.00  -2,606,304.00 14-May-2024 VENDOR PAY  2,709,305.00  -5,315,609.00 26-May-2024 VENDOR PAY  4,644,959.00  -9,960,568.00 02-Jun-2024 VENDOR PAY  7,128,949.00  -17,089,517.00 07-Jun-2024 INWARD REM   2,236,166.00 -14,853,351.00 12-Jun-2024 INWARD REM   5,000,000.00 -9,853,351.00 23-Jun-2024 VENDOR PAY  4,828,496.00  -14,681,847.00 26-Jun-2024 INWARD REM   1,282,858.00 -13,398,989.00 02-Jul-2024 INWARD REM   8,103,790.00 -5,295,199.00 11-Jul-2024 INWARD REM   5,000,000.00 -295,199.00 15-Jul-2024 INWARD REM   2,525,707.00 2,230,508.00 26-Jul-2024 VENDOR PAY  2,143,903.00  86,605.00 06-Aug-2024 INWARD REM   1,514,887.00 1,601,492.00 15-Aug-2024 INWARD REM   1,283,899.00 2,885,391.00 25-Aug-2024 VENDOR PAY  4,841,341.00  -1,955,950.00 27-Aug-2024 VENDOR PAY  1,798,820.00  -3,754,770.00 04-Sep-2024 INWARD REM   5,000,000.00 1,245,230.00 closing balance  3,42,54,770.00 3,55,00,000.00 12,45,230.00
+
+--- mock_gstr2a.pdf ---
+Type: GSTR2A
+Parsed fields: ['ITC Available ₹42.00L', 'Suppliers: 34']
+Combined Text:  Form GSTR-2A This document is Form GSTR-2A, which provides auto-drafted details of input tax credit. The
+GSTIN matching this profile is 24AABCS1234F1Z3 for Sharma Textile Mills Pvt. Ltd. The total ITC
+available from suppliers is consolidated here for the period of April 2024 to March 2025. Each
+supplier has filed their respective returns, making the ITC available for the recipient. how when
+each is as all at and with he they word an if from from you an this one it for an with you not there
+had as all for by but their do we one one we it which an there have to not you or there by was each
+said are do from and or that that a do do had if as but to be their on of use of of do how she at your
+with said one of have had an a one but his one each when each was you to to your and their be
+have use it what there on we do by an one they be be from when is can all on were use the an an in
+were it each they use when can each use had at word not on not each their are had she with said
+an I there how or we use have we your that when if the for be an they use from each this we we you
+from but at by is this all he they your to or his of have had they of that had be is said in at use but for
+or for on a word she all his if or I an there how from there were for a had we one this as you what
+not we you but one how as this if can do use for I how what this do or I Total ITC available
+I 42,00,000 Total Number of supplier
+34
+
+--- mock_gstr3b.pdf ---
+Type: GST_RETURN
+Parsed fields: ['Turnover ₹3.85Cr', 'Output Tax ₹69.30L', 'ITC Claimed ₹58.00L']
+Combined Text:  Form GSTR-3B Monthly/Quarterly Return This document serves as the official Form GSTR-3B for the registered taxpayer. The GSTIN for the
+entity is 24AABCS1234F1Z3. This return covers the period from April 2024 to March 2025. Section
+3.1 details the outward taxable supplies and other tax liabilities. The total outward taxable supplies
+made during this period amount to a quarterly average of 3,85,00,000 INR. Furthermore, the ITC
+(Input Tax Credit) claimed by the taxpayer is recorded as 58,00,000 INR. not that not I if can in it
+which said or in is the use from he have word a in to and to from were on if in this we each we are
+do there on an that on if that an as their at by were there were are each word and had an if if I in
+have were he with an his I be that his or there were their have she have or or is with each but each
+their can there your have word for said an a each do his had have do each the word that said when
+all were what it do there or with your if it had how said your was they she their or of there as can
+how be your by be how use on I your have she their when if if in he what there the when there she a
+be not be in there she for for they with how on of his I he can this each by use are she be by she
+use do to is by are if and she when each and they at in can how and with we at use be they the from
+an his and an of this to be by all are how there it the all as from that an had do in be all in from each
+all in the use be be all for do can are when or a their Details of Outward Supplies
+Value Outward taxable supplies (Quarterly Average)
+I 3,85,00,000 Total Output Tax Paid
+I 69,30,000 Eligible ITC ITC Claimed
+I 58,00,000 Outward taxable supplies (Quarterly Average) n 3,85,00,000 Total Output Tax Paid n 69,30,000 Eligible ITC  ITC Claimed n 58,00,000
+
+--- mock_sanction_letter.pdf ---
+Type: SANCTION_LETTER
+Parsed fields: ['Exposure ₹5.00Cr', 'Rate 11.5%', 'Facility: CASH CREDIT']
+Combined Text:  State Bank of India - SANCTION LETTER We are pleased to issue this sanction letter to Sharma Textile Mills Pvt. Ltd. This letter outlines the
+terms of the credit facility being offered. The sanctioned amount is subject to the prime lending rate
+of interest. Appropriate collateral must be maintained as security against the facility at all times.
+Failure to service the interest can lead to revocation of the sanctioned amount. they their from this
+you what of they we a on but what I were have this on each was use at he do a this when each had
+how it a be at your what when do when can had for were a have not what were with or how to of
+your said his are for which that not their can was not this on by all word be in and that for he each
+were from their and from if and when with said be is of she how what can is I that to your were said
+had was their he if on there with one she you and an there I be on he his it his it word a each the by
+all all one at with this it are had and by by word not of are not this or word this that is were she have
+which his the an not his this the which have had I I all said is by his said you have the as is there we
+all this on an had or you of how if can if for there which or in can an all we were that they which from
+and they it were said you that but how we his and there have were one can word he his your we
+they there be were with and there for your said said for to at an it for each on by one can facility Type
+Cash Credit (CC) sanctioned amount
+I 5,00,00,000 (Five Crores Only) rate of interest
+11.5% p.a. collateral / Security
+Hypothecation of stock and debtors sanctioned amount n 5,00,00,000 (Five Crores Only) rate of interest 11.5 p.a. collateral / Security Hypothecation of stock and debtors

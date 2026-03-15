@@ -85,7 +85,7 @@ export default function QualitativeInputPage() {
 
     const state = location.state || {};
     const baseScore = state.baseScore ?? (state.data?.ml_output?.predicted_score ? parseFloat(state.data.ml_output.predicted_score) : 68);
-    const companyName = location.state?.companyName || location.state?.company_name || location.state?.data?.company_name || location.state?.data?.extracted_data?.company_name || "Sharma Textile Mills Pvt. Ltd";
+    const companyName = location.state?.companyName || location.state?.company_name || location.state?.data?.company_name || location.state?.data?.extracted_data?.company_name || "Company";
     const initialRiskTier = state.riskTier || state.data?.ml_output?.decision || "WATCHLIST";
 
     const [inputs, setInputs] = useState({
@@ -209,7 +209,7 @@ export default function QualitativeInputPage() {
     const hiddenCount = chips.length - 5;
 
     const handleSkip = () => {
-        navigate('/evidence', {
+        navigate('/cam', {
             state: {
                 ...state,
                 adjustedScore: baseScore,
@@ -225,7 +225,7 @@ export default function QualitativeInputPage() {
     };
 
     const handleApply = () => {
-        navigate('/evidence', {
+        navigate('/cam', {
             state: {
                 ...state,
                 adjustedScore: displayScore,

@@ -1,0 +1,20 @@
+{
+  "raw_text": "State Bank of India - SANCTION LETTER\nWe are pleased to issue this sanction letter to Sharma Textile Mills Pvt. Ltd. This letter outlines the\nterms of the credit facility being offered. The sanctioned amount is subject to the prime lending rate\nof interest. Appropriate collateral must be maintained as security against the facility at all times.\nFailure to service the interest can lead to revocation of the sanctioned amount. they their from this\nyou what of they we a on but what I were have this on each was use at he do a this when each had\nhow it a be at your what when do when can had for were a have not what were with or how to of\nyour said his are for which that not their can was not this on by all word be in and that for he each\nwere from their and from if and when with said be is of she how what can is I that to your were said\nhad was their he if on there with one she you and an there I be on he his it his it word a each the by\nall all one at with this it are had and by by word not of are not this or word this that is were she have\nwhich his the an not his this the which have had I I all said is by his said you have the as is there we\nall this on an had or you of how if can if for there which or in can an all we were that they which from\nand they it were said you that but how we his and there have were one can word he his your we\nthey there be were with and there for your said said for to at an it for each on by one can\n<table>\n<tbody>\n<tr>\n<td>facility Type</td>\n<td>Cash Credit (CC)</td>\n</tr>\n<tr>\n<td>sanctioned amount</td>\n<td>\u25a0 5,00,00,000 (Five Crores Only)</td>\n</tr>\n<tr>\n<td>rate of interest</td>\n<td>11.5% p.a.</td>\n</tr>\n<tr>\n<td>collateral / Security</td>\n<td>Hypothecation of stock and debtors</td>\n</tr>\n</tbody>\n</table>",
+  "tables": [
+    {
+      "block_id": "20260309_e3247a6a-7e08-4200-8b6b-2d630db838b3_1_block_002",
+      "coordinates": {
+        "x1": 299.0,
+        "y1": 1242.0,
+        "x2": 2182.0,
+        "y2": 1541.0
+      },
+      "layout_tag": "table",
+      "confidence": 0.9636234641075134,
+      "reading_order": 3,
+      "text": "<table>\n<tbody>\n<tr>\n<td>facility Type</td>\n<td>Cash Credit (CC)</td>\n</tr>\n<tr>\n<td>sanctioned amount</td>\n<td>\u25a0 5,00,00,000 (Five Crores Only)</td>\n</tr>\n<tr>\n<td>rate of interest</td>\n<td>11.5% p.a.</td>\n</tr>\n<tr>\n<td>collateral / Security</td>\n<td>Hypothecation of stock and debtors</td>\n</tr>\n</tbody>\n</table>"
+    }
+  ],
+  "language_detected": "en-IN",
+  "confidence": 1.0
+}

@@ -22,7 +22,11 @@ def generate_summaries(input_data: Dict[str, Any]) -> Dict[str, str]:
     if api_key and api_key != "your_openai_api_key":
         try:
             from openai import OpenAI
-            client = OpenAI(api_key=api_key)
+            # Route to OpenRouter if key is an OpenRouter key
+            if api_key.startswith("sk-or-"):
+                client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
+            else:
+                client = OpenAI(api_key=api_key)
             
             prompt = f"""
             You are a senior credit analyst writing a Credit Appraisal Memo (CAM).
@@ -41,7 +45,7 @@ def generate_summaries(input_data: Dict[str, Any]) -> Dict[str, str]:
             """
             
             response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3
             )

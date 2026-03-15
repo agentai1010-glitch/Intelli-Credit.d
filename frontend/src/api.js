@@ -35,6 +35,16 @@ export const generateCam = async (payload) => {
     return response.data;
 };
 
+export const askChatbot = async (question, docId, creditContext) => {
+    const response = await api.post('/chatbot/ask', {
+        question,
+        doc_id: docId,
+        credit_context: creditContext,
+    });
+    return response.data;
+};
+
+
 export const fetchCamHistory = async (userId) => {
     const response = await api.get('/history/', { params: { user_id: userId } });
     return response.data;

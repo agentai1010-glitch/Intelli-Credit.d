@@ -1,10 +1,27 @@
 """
 Custom crawler for research using feedparser (Google News RSS) and newspaper3k.
 """
+import re
 import urllib.parse
 import feedparser
 from datetime import datetime, timedelta
 from typing import List, Dict
+
+
+def _strip_html(text: str) -> str:
+    """Remove HTML tags and decode common entities from RSS summaries."""
+    if not text:
+        return ""
+    clean = re.sub(r'<[^>]+>', '', text)           # strip all HTML tags
+    clean = clean.replace('&amp;', '&')
+    clean = clean.replace('&lt;', '<')
+    clean = clean.replace('&gt;', '>')
+    clean = clean.replace('&quot;', '"')
+    clean = clean.replace('&#39;', "'")
+    clean = clean.replace('&nbsp;', ' ')
+    clean = re.sub(r'\s+', ' ', clean).strip()      # collapse whitespace
+    return clean
+
 
 def fetch_evidence_for_entity(name: str, keywords: List[str] = []) -> List[Dict]:
     """
@@ -40,11 +57,12 @@ def fetch_evidence_for_entity(name: str, keywords: List[str] = []) -> List[Dict]
             date_str = datetime.utcnow().strftime("%Y-%m-%d")
 
         evidence_list.append({
-            "title": entry.title,
+            "title": _strip_html(entry.title),
             "date": date_str,
             "source": entry.source.title if hasattr(entry, 'source') else "Google News",
             "url": entry.link,
-            "content": entry.summary # Usually contains an HTML snippet, could be cleaned
+            "content": _strip_html(entry.summary)
         })
         
     return evidence_list
+

@@ -8,6 +8,16 @@ import pandas as pd
 import lightgbm as lgb
 from typing import Dict, Union
 
+# Exactly the 6 features the LightGBM model was trained on — order matters
+MODEL_FEATURES = [
+    "revenue_expense_ratio",
+    "working_capital",
+    "debt_equity_ratio",
+    "gst_bank_match_score",
+    "legal_flag_count",
+    "sector_risk_flag",
+]
+
 class CreditScoringModel:
     def __init__(self, reject_threshold: float = 0.7, watchlist_threshold: float = 0.4):
         self.model = None
@@ -76,13 +86,13 @@ class CreditScoringModel:
             # Explicit rule for labels to enforce correct SHAP directions
             # Col Mapping: 0=rer, 1=wc, 2=der, 3=gst, 4=lfc, 5=srt
             default_probability = (
-                - 0.3 * X[:, 3] 
+                - 1.5 * X[:, 3] # Heavily penalize low GST match (high reward for good match)
                 + 0.25 * X[:, 2] 
                 - 0.2 * (X[:, 1] / 100_000_000.0) 
-                + 0.3 * (X[:, 4] / 5.0) 
+                + 0.4 * (X[:, 4] / 2.0) # Penalize legal flags more 
                 - 0.1 * X[:, 0] 
-                + 0.1 * X[:, 5]
-                + 0.38 + np.random.normal(0, 0.3, len(X))
+                + 0.2 * X[:, 5]
+                + 0.75 + np.random.normal(0, 0.2, len(X)) # Lower base score (0.75 default risk)
             )
             y = np.where(default_probability > 0.5, 1, 0)
             
@@ -111,29 +121,33 @@ class CreditScoringModel:
     def predict(self, features: pd.DataFrame) -> Dict[str, Union[float, str]]:
         """
         Predicts the credit risk.
-        Returns mapped classification based on thresholds.
+        Slices to only the 6 model-trained columns before prediction
+        so extra enrichment columns never cause a feature-mismatch crash.
         """
         if self.model is None:
             raise ValueError("Model not loaded. Call load_model() first.")
-            
-        # Predict returns an array, take the first value
-        raw_score = self.model.predict(features)[0]
-        
-        # Scale score to strictly 0.0 - 1.0 bounds (or 0-100)
-        # Assuming the model outputs probability of DEFAULT. 
-        # Convert it to a traditional credit score out of 100.
+
+        # Keep only the columns the booster was trained on, in training order
+        # Add any missing columns as 0 (safe default)
+        model_input = features.reindex(columns=MODEL_FEATURES, fill_value=0).astype(float)
+
+        print(f"[model.predict] Input values: {model_input.iloc[0].to_dict()}")
+
+        raw_score = self.model.predict(model_input)[0]
+
         prob_default = max(0.0, min(1.0, float(raw_score)))
         credit_score = int((1.0 - prob_default) * 100)
-        
-        # User defined thresholds (APPROVE >= 70, WATCHLIST 50-69, REJECT < 50)
+
+        print(f"[model.predict] raw_score={raw_score:.4f}  prob_default={prob_default:.4f}  credit_score={credit_score}")
+
         if credit_score >= 70:
             decision = "APPROVE"
         elif credit_score >= 50:
             decision = "WATCHLIST"
         else:
             decision = "REJECT"
-            
+
         return {
-            "predicted_score": credit_score / 100.0, # Keep float response stable for APIs if needed, though int is clearer
+            "predicted_score": credit_score / 100.0,
             "decision": decision
         }

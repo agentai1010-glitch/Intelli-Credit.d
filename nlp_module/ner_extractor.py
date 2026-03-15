@@ -18,24 +18,33 @@ GSTIN_REGEX = r"\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}"
 
 class NERExtractor:
     def __init__(self):
-        # Load spaCy model (installed at build time via nixpacks.toml)
+        # Load spaCy model (installed at build time via nixpacks.toml or local setup)
         try:
             self.nlp = spacy.load("en_core_web_sm")
         except OSError:
+            print("[NERExtractor] en_core_web_sm not found. Attempting quick download...")
             import subprocess
-            subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"], check=True)
-            self.nlp = spacy.load("en_core_web_sm")
+            try:
+                # Add a timeout to prevent hanging on bad connections
+                subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"], check=True, timeout=30)
+                self.nlp = spacy.load("en_core_web_sm")
+            except Exception as e:
+                print(f"[NERExtractor] spaCy download failed or timed out: {e}. Falling back to blank model.")
+                # Fallback to a blank English model if we can't get the small one
+                self.nlp = spacy.blank("en")
 
         # Add custom rules for Indian financial red-flags
-        if "entity_ruler" not in self.nlp.pipe_names:
-            ruler = self.nlp.add_pipe("entity_ruler", before="ner")
-            ruler.add_patterns([
-                {"label": "LAW", "pattern": [{"lower": "insolvency"}, {"lower": "act"}]},
-                {"label": "LAW", "pattern": [{"lower": "npa"}]},
-                {"label": "LAW", "pattern": [{"lower": "default"}]},
-            ])
-
-        print("[NERExtractor] spaCy model loaded successfully.")
+        try:
+            if "entity_ruler" not in self.nlp.pipe_names:
+                ruler = self.nlp.add_pipe("entity_ruler", before="ner" if "ner" in self.nlp.pipe_names else None)
+                ruler.add_patterns([
+                    {"label": "LAW", "pattern": [{"lower": "insolvency"}, {"lower": "act"}]},
+                    {"label": "LAW", "pattern": [{"lower": "npa"}]},
+                    {"label": "LAW", "pattern": [{"lower": "default"}]},
+                ])
+            print("[NERExtractor] spaCy model / fallback loaded successfully.")
+        except Exception as e:
+            print(f"[NERExtractor] Failed to add entity_ruler: {e}")
 
     def extract_regex_entities(self, text: str) -> List[Dict]:
         entities = []

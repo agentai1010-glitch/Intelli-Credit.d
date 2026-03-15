@@ -1,0 +1,89 @@
+CREDIT APPRAISAL MEMORANDUM
+Company: Sharma Textile Mills Pvt. Ltd.
+CIN: Not provided
+Date: Today
+Analyst: System AI
+Risk Score: 46
+Decision: REJECT
+
+Table of Contents
+1. Executive Summary
+2. Score Waterfall Computation
+3. Character (Management & Promoters)
+4. Capacity (Financial Repayment)
+5. Capital (Net Worth & Leverage)
+6. Collateral (Security Coverage)
+7. Conditions (Macro & Industry)
+8. AI Risk Insights & SHAP
+
+1. Executive Summary
+Based on a risk score of 46, we recommend a verdict of REJECT for a limit of 5Cr at 11.5%. GST evidence uncovered
+multiple flags dictating severe risk. Qualitative adjustments resulted in -30 penalty (e.g., Capacity Utilization=5%).
+Regulatory checks spanning ['MCA', 'EPFO', 'GSTIN', 'High Court'] surfaced a score of 85. Borrower must improve
+working capital and resolve existing litigation to approach the passing threshold of 70.
+2. Score Waterfall Computation
+Information pending analytical review.
+Component
+Impact
+Running Score
+LightGBM Base Score
++76
+76
+GST Reconciliation
+-8
+58
+Qualitative Adjustment
+-30
+46
+Regulatory Intelligence
+0
+46
+FINAL SCORE
+—
+46 / REJECT
+3. Character (Management & Promoters)
+Management is noted as AVERAGE. Regulatory checks indicated: All sources clean, no adverse findings
+4. Capacity (Financial Repayment)
+With revenue of Not provided and EBITDA of Not provided, the DSCR is Not provided. GST Score is 58.
+GST Reconciliation Variance
+Metric
+GST Declared
+Bank Statement
+Variance
+Quarterly Revenue
+I3.85Cr
+I3.55Cr
+8.45%
+ITC Claimed
+I58L
+Available I42L
+38.1%
+Flags Detected
+Flag
+Severity
+Score Penalty
+REVENUE_MISMATCH
+MEDIUM
+-7
+CIRCULAR_TRADING_RISK
+HIGH
+-20
+SUSPICIOUS_TRANSACTIONS
+HIGH
+-15
+5. Capital (Net Worth & Leverage)
+
+Net worth is Not provided making Debt/Equity Not provided.
+6. Collateral (Security Coverage)
+Security coverage is 0.00x against collateral value Not provided.
+7. Conditions (Macro & Industry)
+Industry outlook is Not provided. Sector news: Not provided
+8. AI Risk Insights & SHAP
+Top drivers: Not provided
+Sanction Terms
+Sanction Decision: REJECT
+Facility Limit: 5 Cr
+Interest Rate: 11.5%
+Tenure: 12 months
+Conditions:
+- Standard terms apply.

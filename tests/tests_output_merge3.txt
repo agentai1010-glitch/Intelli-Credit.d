@@ -1,0 +1,39 @@
+﻿Running extract_with_pageindex('pi-cmmjo68xg04il9rqnht74lnr1') ...
+
+[PAGEINDEX] revenue                   | PARSED: 425000000.0 | RAW: 42.5
+[PAGEINDEX] ebitda                    | PARSED: 61000000.0 | RAW: 6.1
+[PAGEINDEX] net_worth                 | PARSED: 140000000.0 | RAW: 14
+[PAGEINDEX] existing_debt             | PARSED: 82000000.0 | RAW: 8.2 Crores
+[PAGEINDEX] contingent_liabilities    | PARSED: None | RAW: None
+[PAGEINDEX] related_party_exposure    | PARSED: None | RAW: None
+[PAGEINDEX] auditor_qualification     | PARSED: unqualified | RAW: unqualified
+[PAGEINDEX] off_balance_sheet_items   | PARSED: None | RAW: None
+[PAGEINDEX] revenue_trend             | PARSED: FY2023: 35.0 Cr
+FY2024: 38.0 Cr
+FY2025: 42.5 Cr | RAW: FY2023: 35.0 Cr FY2024: 38.0 Cr FY2025: 42.5 Cr
+[PAGEINDEX] sector                    | PARSED: Textiles | RAW: Textiles
+
+FIELD                    SARVAM VALUE        PAGEINDEX VALUE     MATCH?
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+revenue                  425000000.0         425000000.0         YES
+ebitda                   61000000.0          61000000.0          YES
+net_worth                140000000.0         140000000.0         YES
+existing_debt            82000000.0          82000000.0          YES
+contingent_liabilities   None (not found)    None                N/A
+related_party_exposure   None (not found)    None                N/A
+auditor_qualification    None (not found)    unqualified         NEW FIND
+off_balance_sheet_items  None (not found)    None                N/A
+revenue_trend            None (not found)    FY2023: 35.0 Cr
+FY2024: 38.0 Cr
+FY2025: 42.5 Cr NEW FIND
+sector                   None (not found)    Textiles            NEW FIND
+
+
+--- TASK 3: merge_extraction_sources ---
+[MERGE] revenue matches within tolerance. Using Sarvam.
+[MERGE] ebitda matches within tolerance. Using Sarvam.
+[MERGE] net_worth matches within tolerance. Using Sarvam.
+[MERGE] existing_debt only in PageIndex. Using PageIndex.
+[MERGE] auditor_qualification from PageIndex.
+[MERGE] revenue_trend from PageIndex.
+[MERGE] sector from PageIndex.

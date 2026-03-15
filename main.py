@@ -16,6 +16,7 @@ from api.gst_routes import router as gst_router
 from api.qualitative_routes import router as qualitative_router
 from api.recommendation_routes import router as recommendation_router
 from api.regulatory_routes import router as regulatory_router
+from api.chatbot_routes import router as chatbot_router
 
 app = FastAPI(
     title="Intelli-Credit API",
@@ -45,6 +46,7 @@ app.include_router(gst_router, prefix="/api/v1/gst")
 app.include_router(qualitative_router, prefix="/api/v1/qualitative")
 app.include_router(recommendation_router, prefix="/api/v1/recommendation")
 app.include_router(regulatory_router, prefix="/api/v1/regulatory")
+app.include_router(chatbot_router, prefix="/api/v1/chatbot")
 
 @app.get("/")
 async def root():

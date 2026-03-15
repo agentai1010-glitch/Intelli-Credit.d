@@ -25,22 +25,52 @@ export default function ScoreView() {
     // Animated Score State
     const [displayScore, setDisplayScore] = useState(0);
 
+    const formatCrores = (absoluteRupees) => {
+        if (!absoluteRupees && absoluteRupees !== 0) return "N/A";
+        const crores = absoluteRupees / 10000000;
+        return `₹${crores.toFixed(2)} Cr`;
+    };
+
     const runScore = async () => {
         if (!sessionData.features || Object.keys(sessionData.features).length === 0) {
             setLoading(false);
             return;
         }
 
+        const f = sessionData.features;
         try {
+            // Task 1: COMPUTE FRESH FEATURES (Clear Stale Values)
+            const revenue = Number(f.revenue || 0);
+            const ebitda = Number(f.ebitda || 0);
+            const netWorth = Number(f.net_worth || 0);
+            const debt = Number(f.existing_debt || 0);
+
+            // Recompute from base fields to avoid stale values
+            const wc = netWorth - debt;
+            const deRatio = netWorth > 0 ? debt / netWorth : 0;
+            const revExpRatio = revenue > 0 ? ebitda / revenue : 0;
+
+            const gstScore = Number(
+                f.gst_bank_match_score != null
+                    ? f.gst_bank_match_score * 100
+                    : sessionData.gst_reconciliation?.reconciliation_score ?? 100
+            );
+
             const payload = {
                 document_data: {
-                    revenue: sessionData.features.revenue,
-                    ebitda: sessionData.features.ebitda,
-                    net_worth: sessionData.features.net_worth,
-                    existing_debt: sessionData.features.existing_debt,
-                    working_capital: sessionData.features.working_capital
+                    revenue,
+                    ebitda,
+                    net_worth: netWorth,
+                    existing_debt: debt,
+                    working_capital: wc,
+                    debt_equity_ratio: deRatio,
+                    revenue_expense_ratio: revExpRatio,
+                    gst_reconciliation_score: gstScore,
+                    sector_risk: Number(f.sector_risk_flag || 0),
+                    auditor_qualification: f.auditor_qualification || 'Unqualified',
+                    legal_flag_count: Number(f.legal_flag_count || 0),
                 },
-                gst_reconciliation_score: 58
+                gst_reconciliation_score: gstScore
             };
             const response = await scoreCompany(payload);
             setData(response);
@@ -92,14 +122,34 @@ export default function ScoreView() {
 
             if (scoreInt > 0) {
                 try {
-                    const features = sessionData.features || {};
+                    // Utility to ensure we have Crores for the pricing engine
+                    const normalizeToCr = (val) => {
+                        if (!val) return 0;
+                        const n = Number(val);
+                        // If it's already a small number (e.g. 42.5), it's likely already in Crores.
+                        // If it's huge (e.g. 425000000), it's raw rupees.
+                        return n > 1000000 ? n / 1e7 : n;
+                    };
+
+                    const fData = sessionData.features || {};
+                    const revCr = normalizeToCr(fData.revenue);
+                    const debtCr = normalizeToCr(fData.existing_debt);
+                    const ebitdaCr = normalizeToCr(fData.ebitda);
+                    const collateralCr = normalizeToCr(fData.collateral_value);
+                    
+                    const gstScore = Number(
+                        fData.gst_bank_match_score != null
+                            ? fData.gst_bank_match_score * 100
+                            : sessionData.gst_reconciliation?.reconciliation_score ?? 100
+                    );
+
                     const termsPayload = {
                         risk_score: scoreInt,
-                        revenue: features.revenue || 40.0,
-                        debt: features.existing_debt || 10.0,
-                        ebitda: features.ebitda || 8.0,
-                        collateral_value: features.collateral_value || 15.0,
-                        gst_reconciliation_score: 85.0,
+                        revenue: revCr || 42.5,
+                        debt: debtCr || 8.2,
+                        ebitda: ebitdaCr || 6.1,
+                        collateral_value: collateralCr || 12.0,
+                        gst_reconciliation_score: gstScore,
                         qualitative_delta: {
                             pending_litigation: false,
                             management_quality: "AVERAGE",
@@ -120,8 +170,21 @@ export default function ScoreView() {
                     const shapDict = {};
                     shapArray.forEach(s => { shapDict[s.feature] = s.impact; });
 
+                    // Only send the 6 numeric ML features (not strings like sector/auditor)
+                    const f = sessionData.features || {};
+                    const nw = Number(f.net_worth || 0);
+                    const dt = Number(f.existing_debt || 0);
+                    const numericFeatures = {
+                        revenue_expense_ratio: nw && f.revenue ? Number(f.ebitda || 0) / Number(f.revenue) : 0,
+                        working_capital: nw - dt,
+                        debt_equity_ratio: nw > 0 ? dt / nw : 0,
+                        gst_bank_match_score: Number(f.gst_bank_match_score || 0.58),
+                        legal_flag_count: Number(f.legal_flag_count || 0),
+                        sector_risk_flag: Number(f.sector_risk_flag || 0)
+                    };
+
                     const cfPayload = {
-                        features: features,
+                        features: numericFeatures,
                         risk_score: scoreInt,
                         shap_values: shapDict
                     };
@@ -178,6 +241,10 @@ export default function ScoreView() {
         if (value === null || value === undefined || isNaN(value)) return 'N/A';
         const num = Number(value);
         const key = (factor || '').toLowerCase();
+
+        if (key === 'working_capital') {
+            return formatCrores(num);
+        }
 
         let unit = 'raw';
         if (key === 'working_capital') {
@@ -253,7 +320,7 @@ export default function ScoreView() {
                 <button className="btn-primary" onClick={() => navigate('/qualitative-input', {
                     state: {
                         baseScore: displayScore,
-                        companyName: sessionData.features?.company_name || 'Sharma Textile Mills Pvt. Ltd',
+                        companyName: sessionData.features?.company_name || sessionData?.companyName || 'Company',
                         riskTier: decision,
                         loanLimit: formatLimitCr(termsData?.recommended_limit_cr),
                         interestRate: termsData?.recommended_rate_pct + "%",

@@ -1,0 +1,20 @@
+{
+  "raw_text": "Form GSTR-3B\nMonthly/Quarterly Return\nThis document serves as the official Form GSTR-3B for the registered taxpayer. The GSTIN for the\nentity is 24AABCS1234F1Z3. This return covers the period from April 2024 to March 2025. Section\n3.1 details the outward taxable supplies and other tax liabilities. The total outward taxable supplies\nmade during this period amount to a quarterly average of 3,85,00,000 INR. Furthermore, the ITC\n(Input Tax Credit) claimed by the taxpayer is recorded as 58,00,000 INR. not that not I if can in it\nwhich said or in is the use from he have word a in to and to from were on if in this we each we are\ndo there on an that on if that an as their at by were there were are each word and had an if if I in\nhave were he with an his I be that his or there were their have she have or or is with each but each\ntheir can there your have word for said an a each do his had have do each the word that said when\nall were what it do there or with your if it had how said your was they she their or of there as can\nhow be your by be how use on I your have she their when if if in he what there the when there she a\nbe not be in there she for for they with how on of his I he can this each by use are she be by she\nuse do to is by are if and she when each and they at in can how and with we at use be they the from\nan his and an of this to be by all are how there it the all as from that an had do in be all in from each\nall in the use be be all for do can are when or a their\n<table>\n<thead>\n<tr>\n<th>Details of Outward Supplies</th>\n<th>Value</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>Outward taxable supplies (Quarterly Average)</td>\n<td>\u25a0 3,85,00,000</td>\n</tr>\n<tr>\n<td>Total Output Tax Paid</td>\n<td>\u25a0 69,30,000</td>\n</tr>\n<tr>\n<td>Eligible ITC</td>\n<td></td>\n</tr>\n<tr>\n<td>ITC Claimed</td>\n<td>\u25a0 58,00,000</td>\n</tr>\n</tbody>\n</table>",
+  "tables": [
+    {
+      "block_id": "20260309_63081767-a7dc-41f7-8711-249de5bf834b_1_block_003",
+      "coordinates": {
+        "x1": 297.0,
+        "y1": 1417.0,
+        "x2": 2181.0,
+        "y2": 1791.0
+      },
+      "layout_tag": "table",
+      "confidence": 0.9629433751106262,
+      "reading_order": 4,
+      "text": "<table>\n<thead>\n<tr>\n<th>Details of Outward Supplies</th>\n<th>Value</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>Outward taxable supplies (Quarterly Average)</td>\n<td>\u25a0 3,85,00,000</td>\n</tr>\n<tr>\n<td>Total Output Tax Paid</td>\n<td>\u25a0 69,30,000</td>\n</tr>\n<tr>\n<td>Eligible ITC</td>\n<td></td>\n</tr>\n<tr>\n<td>ITC Claimed</td>\n<td>\u25a0 58,00,000</td>\n</tr>\n</tbody>\n</table>"
+    }
+  ],
+  "language_detected": "en-IN",
+  "confidence": 1.0
+}

@@ -1,0 +1,33 @@
+{
+  "raw_text": "Sharma Textile Mills Pvt. Ltd. - Annual Report\nWelcome to the annual report for the fiscal year. The Board of Directors is pleased to present the\nfinancial results. The Chairman has noted that the overall revenue for the period saw significant\nimprovement. The Auditor has reviewed the statements and provided an unqualified opinion on the\nfairness of the reporting. This annual report aims to give shareholders a transparent look at our\noperations and financial health. a there your that had they they was for what we it from had one all\nto but there they you his for to each they it have it he are but or we one on by but in from use from\ntheir there one were there word have they do each can how be use as for be his on or had on of\nhad each as their she is at one when do I can and had do be which how what I with with she the\nthat in had he if have in were on do said I if for to were that it was use word your are in what she\nhow she to is was not word the with use was were of is I use their were your this are of do but in an\ntheir were what are use in word have was can as not do at for are the to each this in from the do to\nif or were his do their said we on you how they use which were we each on what when this if all said\nwe for their have you all for as he I your or his you an to as not an I can are that were is be do with\ncan said at this with have are when do not your all have she as and they word do have each a one\nwe was from with each an or use all\n<table>\n<tbody>\n<tr>\n<td>Total Assets</td>\n<td>\u25a0 28,00,00,000</td>\n</tr>\n<tr>\n<td>Net Worth</td>\n<td>\u25a0 14,00,00,000</td>\n</tr>\n<tr>\n<td>Debt</td>\n<td>\u25a0 8,20,00,000</td>\n</tr>\n</tbody>\n</table>\n<table>\n<thead>\n<tr>\n<th>Metric</th>\n<th>FY2023</th>\n<th>FY2024</th>\n<th>FY2025</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>revenue (Cr)</td>\n<td>\u25a0 35.0</td>\n<td>\u25a0 38.0</td>\n<td>\u25a0 42.5</td>\n</tr>\n<tr>\n<td>EBITDA (Cr)</td>\n<td>\u25a0 4.2</td>\n<td>\u25a0 4.8</td>\n<td>\u25a0 6.1</td>\n</tr>\n<tr>\n<td>PAT (Cr)</td>\n<td>\u25a0 1.8</td>\n<td>\u25a0 2.1</td>\n<td>\u25a0 2.8</td>\n</tr>\n</tbody>\n</table>",
+  "tables": [
+    {
+      "block_id": "20260309_71271a2e-4a05-4dd8-a452-b38795576dd9_1_block_002",
+      "coordinates": {
+        "x1": 507.0,
+        "y1": 1292.0,
+        "x2": 1972.0,
+        "y2": 1513.0
+      },
+      "layout_tag": "table",
+      "confidence": 0.9306851625442505,
+      "reading_order": 3,
+      "text": "<table>\n<tbody>\n<tr>\n<td>Total Assets</td>\n<td>\u25a0 28,00,00,000</td>\n</tr>\n<tr>\n<td>Net Worth</td>\n<td>\u25a0 14,00,00,000</td>\n</tr>\n<tr>\n<td>Debt</td>\n<td>\u25a0 8,20,00,000</td>\n</tr>\n</tbody>\n</table>"
+    },
+    {
+      "block_id": "20260309_71271a2e-4a05-4dd8-a452-b38795576dd9_1_block_003",
+      "coordinates": {
+        "x1": 425.0,
+        "y1": 1569.0,
+        "x2": 2054.0,
+        "y2": 1866.0
+      },
+      "layout_tag": "table",
+      "confidence": 0.9303722977638245,
+      "reading_order": 4,
+      "text": "<table>\n<thead>\n<tr>\n<th>Metric</th>\n<th>FY2023</th>\n<th>FY2024</th>\n<th>FY2025</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>revenue (Cr)</td>\n<td>\u25a0 35.0</td>\n<td>\u25a0 38.0</td>\n<td>\u25a0 42.5</td>\n</tr>\n<tr>\n<td>EBITDA (Cr)</td>\n<td>\u25a0 4.2</td>\n<td>\u25a0 4.8</td>\n<td>\u25a0 6.1</td>\n</tr>\n<tr>\n<td>PAT (Cr)</td>\n<td>\u25a0 1.8</td>\n<td>\u25a0 2.1</td>\n<td>\u25a0 2.8</td>\n</tr>\n</tbody>\n</table>"
+    }
+  ],
+  "language_detected": "en-IN",
+  "confidence": 1.0
+}

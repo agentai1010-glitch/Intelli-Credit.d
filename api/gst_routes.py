@@ -21,6 +21,7 @@ import os
 import shutil
 import time
 
+from ocr_pipeline.pdf_parser import extract_layout_text
 from ocr_pipeline.ocr_utils import run_ocr_with_tesseract
 from ml_engine.gst_reconciler import (
     extract_gstr3b_figures,
@@ -93,7 +94,15 @@ async def reconcile_gst(
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(upload_file.file, buffer)
                 
-            raw_text = run_ocr_with_tesseract(file_path)
+            raw_text = ""
+            try:
+                blocks = extract_layout_text(file_path)
+                raw_text = " ".join([b.get("text", "") for b in blocks])
+            except Exception as e:
+                print(f"Layout extraction failed, trying OCR: {e}")
+                
+            if not raw_text.strip():
+                raw_text = run_ocr_with_tesseract(file_path)
             
             if not raw_text or not raw_text.strip():
                 raise HTTPException(status_code=400, detail=f"Could not extract text from {upload_file.filename}. Ensure PDF is not password protected.")
@@ -108,9 +117,21 @@ async def reconcile_gst(
         raise HTTPException(status_code=500, detail="Reconciliation processing failed")
         
     try:
-        # Extract features
-        dict_3b = extract_gstr3b_figures(extracted_data.get("gstr3b", "")) if "gstr3b" in extracted_data else {}
-        dict_2a = extract_gstr2a_figures(extracted_data.get("gstr2a", "")) if "gstr2a" in extracted_data else {}
+        # Extract features using LLM since Regex is failing on real-world test cases
+        from ml_engine.smart_parser import llm_extract_fields
+        
+        dict_3b = {}
+        if "gstr3b" in extracted_data:
+            dict_3b = llm_extract_fields(extracted_data["gstr3b"], "GST_RETURN") or {}
+            
+        dict_2a = {}
+        if "gstr2a" in extracted_data:
+            res_2a = llm_extract_fields(extracted_data["gstr2a"], "GSTR2A") or {}
+            dict_2a = {
+                "itc_available_from_suppliers": res_2a.get("itc_available", 0),
+                "supplier_count": res_2a.get("supplier_count", 0)
+            }
+            
         dict_bank = extract_bank_credits(extracted_data.get("bank_stmt", "")) if "bank_stmt" in extracted_data else {}
         
         ct_results = {}

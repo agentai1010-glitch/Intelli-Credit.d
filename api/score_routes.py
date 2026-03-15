@@ -31,7 +31,7 @@ async def score_company(parsed_data: Dict[str, Any]):
         document_data = parsed_data.get("features", {})
     gst_data = parsed_data.get("gst_data", {})
     if gst_data:
-        document_data["gst_reconciliation_score"] = gst_data.get("reconciliation_score", gst_data.get("itc_claimed", 58.0))
+        document_data["gst_reconciliation_score"] = gst_data.get("reconciliation_score", gst_data.get("itc_claimed", 100.0))
         
     if "gst_reconciliation_score" in parsed_data:
         document_data["gst_reconciliation_score"] = parsed_data["gst_reconciliation_score"]

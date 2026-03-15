@@ -32,10 +32,10 @@ const Sidebar = () => {
 
     const steps = [
         { name: 'Document Ingestion', path: '/', icon: UploadCloud },
+        { name: 'External Evidence', path: '/evidence', icon: Search },
         { name: 'Feature Intelligence', path: '/feature-intelligence', icon: BarChart2 },
         { name: 'Credit Scoring', path: '/score', icon: CheckCircle },
         { name: 'Qualitative Adjustments', path: '/qualitative-input', icon: Sliders },
-        { name: 'External Evidence', path: '/evidence', icon: Search },
         { name: 'CAM Generation', path: '/cam', icon: FileText },
         { name: 'Report History', path: '/history', icon: History },
     ];

@@ -1,0 +1,20 @@
+{
+  "raw_text": "Form GSTR-2A\nThis document is Form GSTR-2A, which provides auto-drafted details of input tax credit. The\nGSTIN matching this profile is 24AABCS1234F1Z3 for Sharma Textile Mills Pvt. Ltd. The total ITC\navailable from suppliers is consolidated here for the period of April 2024 to March 2025. Each\nsupplier has filed their respective returns, making the ITC available for the recipient. how when\neach is as all at and with he they word an if from from you an this one it for an with you not there\nhad as all for by but their do we one one we it which an there have to not you or there by was each\nsaid are do from and or that that a do do had if as but to be their on of use of of do how she at your\nwith said one of have had an a one but his one each when each was you to to your and their be\nhave use it what there on we do by an one they be be from when is can all on were use the an an in\nwere it each they use when can each use had at word not on not each their are had she with said\nan I there how or we use have we your that when if the for be an they use from each this we we you\nfrom but at by is this all he they your to or his of have had they of that had be is said in at use but for\nor for on a word she all his if or I an there how from there were for a had we one this as you what\nnot we you but one how as this if can do use for I how what this do or I\n<table>\n<tbody>\n<tr>\n<td>Total ITC available</td>\n<td>\u25a0 42,00,000</td>\n</tr>\n<tr>\n<td>Total Number of supplier</td>\n<td>34</td>\n</tr>\n</tbody>\n</table>",
+  "tables": [
+    {
+      "block_id": "20260309_dcf7535e-d67c-4f23-aa1d-98cf99a4dcb3_1_block_002",
+      "coordinates": {
+        "x1": 298.0,
+        "y1": 1243.0,
+        "x2": 2181.0,
+        "y2": 1393.0
+      },
+      "layout_tag": "table",
+      "confidence": 0.9059239029884338,
+      "reading_order": 3,
+      "text": "<table>\n<tbody>\n<tr>\n<td>Total ITC available</td>\n<td>\u25a0 42,00,000</td>\n</tr>\n<tr>\n<td>Total Number of supplier</td>\n<td>34</td>\n</tr>\n</tbody>\n</table>"
+    }
+  ],
+  "language_detected": "en-IN",
+  "confidence": 1.0
+}

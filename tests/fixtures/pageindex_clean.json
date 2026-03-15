@@ -1,0 +1,32 @@
+{
+  "retrieval_id": "sr-cmmjohlq204jm9rqnur4mrs20",
+  "doc_id": "pi-cmmjo68xg04il9rqnht74lnr1",
+  "status": "completed",
+  "query": "What is the total Revenue from Operations for the most recent financial year ended March 31, 2024, in Crores?",
+  "retrieved_nodes": [
+    {
+      "id": "0000",
+      "title": "Sharma Textile Mills Pvt. Ltd. - Annual Report",
+      "metadata": [
+        "pi-cmmjo68xg04il9rqnht74lnr1",
+        "mock_annual_report.pdf",
+        "",
+        "This annual report for Sharma Textile Mills Pvt. Ltd. details the company's fiscal year financial performance, including revenue improvements, auditor's opinion, and projections for key financial metrics from FY2023-FY2025.",
+        "File",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "relevant_contents": [
+        [
+          {
+            "section_title": "Sharma Textile Mills Pvt. Ltd. - Annual Report",
+            "physical_index": "<physical_index_1>",
+            "relevant_content": "Table titled with financial metrics for FY2023, FY2024, and FY2025:\n| Metric       | FY2023 | FY2024 | FY2025 |\n|--------------|--------|--------|--------|\n| revenue (Cr) | 35.0   | 38.0   | 42.5   |\n| EBITDA (Cr)  | 4.2    | 4.8    | 6.1    |\n| PAT (Cr)     | 1.8    | 2.1    | 2.8    |\n\nCompany: Sharma Textile Mills Pvt. Ltd.\nThe revenue from operations for FY2024 (April 1, 2023 to March 31, 2024) is 38.0 Crores."
+          }
+        ]
+      ]
+    }
+  ]
+}

@@ -219,7 +219,7 @@ mock_documents/
 3. **Credit Scoring** — Click **"Run ML Scoring Engine"**
    - Expected: Score **91 / APPROVE**
    - SHAP Waterfall: Only `gst_bank_match` shows RED bar
-   - Loan terms: ₹7.2Cr @ 10% for 12 months
+   - Loan terms: ₹7.65Cr @ 10% for 12 months
 
 4. **Qualitative Adjustments** — Adjust analyst inputs, click **"Apply & Continue"**
    - Try: Management = Average, Litigation = Yes, Industry = Favorable
@@ -229,7 +229,7 @@ mock_documents/
    - Expected: All Sources Clean, Regulatory Score 80/100
 
 6. **CAM Generation** — Click **"Synthesize CAM Document"**
-   - Expected: Full 4-page PDF CAM with APPROVE decision, ₹7.2Cr limit
+   - Expected: Full 4-page PDF CAM with APPROVE decision, ₹7.65Cr limit
 
 ---
 

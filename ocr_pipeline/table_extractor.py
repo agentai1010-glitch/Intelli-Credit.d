@@ -23,26 +23,43 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
-def extract_tables(pdf_path: str, mode: str = "lattice") -> List[pd.DataFrame]:
+def extract_tables(pdf_path: str, mode: str = "stream", pages: str = "1-5") -> List[pd.DataFrame]:
     """
     Extracts tables from a PDF using Camelot.
-    Use "lattice" mode for scanned tables and "stream" mode for text-based tables.
-    Returns a list of cleaned pandas DataFrames.
+    Fails fast: uses "stream" by default as it is much faster and doesn't require Ghostscript.
     """
-    try:
-        # Note: flavor allows 'lattice' or 'stream'
-        tables = camelot.read_pdf(pdf_path, pages='all', flavor=mode)
-    except Exception as e:
-        print(f"Error extracting tables from {pdf_path}: {e}")
+    import threading
+    
+    # Camelot can hang on some malformed PDFs. We use a thread-based timeout.
+    result = []
+    error_container = [None]
+    
+    def target():
+        try:
+            # We use flavor=mode (stream by default)
+            tables = camelot.read_pdf(pdf_path, pages=pages, flavor=mode)
+            result.extend([t.df for t in tables])
+        except Exception as e:
+            error_container[0] = e
+
+    thread = threading.Thread(target=target)
+    thread.start()
+    thread.join(timeout=30) # 30 second limit per file
+    
+    if thread.is_alive():
+        print(f"[TABLES] Timeout (30s) reached for {pdf_path}. Skipping table extraction.")
+        return []
+        
+    if error_container[0]:
+        print(f"Error extracting tables from {pdf_path}: {error_container[0]}")
         return []
         
     cleaned_tables = []
-    for table in tables:
-        df = table.df
+    for df in result:
         if not df.empty:
             # Assume first row is header for generic cleaning
             new_header = df.iloc[0]
-            df = df[1:]
+            df = df[1:].copy()
             df.columns = new_header
             
             cleaned_df = clean_dataframe(df)

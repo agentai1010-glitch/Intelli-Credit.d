@@ -1,0 +1,40 @@
+﻿
+============================================================
+NODE 1 ΓÇö Document Ingestion (upload all 5 mock PDFs)
+============================================================
+  [PASS] annual_report: HTTP 200
+         extracted_fields: {"revenue": 425000000.0, "ebitda": 61000000.0, "pat": 28000000.0, "total_assets": 280000000.0, "net_worth": 140000000.0, "debt": 82000000.0, "display"
+  [PASS] bank_statement: HTTP 200
+         extracted_fields: {"total_credits": 35500000.0, "total_debits": 34254770.0, "closing_balance": 1245230.0, "display": ["Credits Γé╣3.55Cr", "Debits Γé╣3.43Cr", "Closing Γé╣12.
+  [PASS] gstr3b: HTTP 200
+         extracted_fields: {"turnover": 38500000.0, "output_tax": 6930000.0, "itc_claimed": 5800000.0, "display": ["Turnover Γé╣3.85Cr", "Output Tax Γé╣69.30L", "ITC Claimed Γé╣58.00L
+  [PASS] gstr2a: HTTP 200
+         extracted_fields: {"itc_available": 4200000.0, "supplier_count": 34, "display": ["ITC Available Γé╣42.00L", "Suppliers: 34"]}
+  [PASS] sanction_letter: HTTP 200
+         extracted_fields: {"sanctioned_amount": 50000000.0, "rate": 11.5, "facility": "CASH CREDIT", "display": ["Exposure Γé╣5.00Cr", "Rate 11.5%", "Facility: CASH CREDIT"]}
+
+============================================================
+NODE 2 ΓÇö GST Reconciliation + ML Scoring
+============================================================
+  lightgbm_score:       0.23  EXPECTED: 76
+  decision:             REJECT  EXPECTED: APPROVE
+  reconciliation_score: N/A  EXPECTED: 58
+  gst_flags_triggered:
+    (none returned at top level ΓÇö score_result keys: ['predicted_score', 'decision'] )
+
+  Top-level response keys: ['status', 'nlp_entities', 'score_result', 'explanation']
+  score_result keys:       ['predicted_score', 'decision']
+
+============================================================
+NODE 3 ΓÇö Qualitative Adjustment
+============================================================
+  [FAIL] /qualitative/adjust/: HTTP 422 ΓÇö {"detail":[{"type":"missing","loc":["body","inputs"],"msg":"Field required","input":{"company_name":"Sharma Textile Mills Pvt. Ltd.","base_score":76,"capacity_utilization":5,"management_quality":"AVER
+
+============================================================
+NODE 4 ΓÇö External Evidence / Regulatory Intelligence
+============================================================
+  company_searched:  Sharma Textile Mills Pvt. Ltd.
+  regulatory_score:  80  EXPECTED: 85
+  sources_checked:   ['MCA Portal', 'eCourts Services', 'RBI Defaulter List', 'IBBI Insolvency records']
+  score_impact:      0  <-- OK
+  flags_found:       (none ΓÇö STABLE)
