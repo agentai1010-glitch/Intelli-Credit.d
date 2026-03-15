@@ -83,31 +83,31 @@ async def scrape_google_news(company_name: str) -> list:
     adverse_keywords = ["insolvency", "fraud", "defaulter", "nclt", "cbi", "regulatory action", "penalty", "wilful defaulter"]
     
     async with httpx.AsyncClient() as client:
+        tasks = []
         for query in queries:
             encoded_query = urllib.parse.quote(query)
-            # Use public Google News RSS feed for query
             url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-IN&gl=IN&ceid=IN:en"
-            
-            try:
-                res = await fetch_with_retry(client, url)
-                if res.status_code == 200:
-                    root = ET.fromstring(res.text)
-                    for item in root.findall('.//item'):
-                        title_el = item.find('title')
-                        desc_el = item.find('description')
-                        link_el = item.find('link')
-                        
-                        title = title_el.text if title_el is not None else ""
-                        desc = desc_el.text if desc_el is not None else ""
-                        link = link_el.text if link_el is not None else url
-                        
-                        # Google News often returns broad matches. Ensure the actual company is mentioned.
-                        core_name = company_name.lower().replace(" ltd.", "").replace(" pvt.", "").replace(" private", "").replace(" limited", "").strip()
-                        text_to_check = (title + " " + desc).lower()
-                        
-                        if core_name not in text_to_check:
-                            continue
-                        # Check explicitly against the list of adverse terms
+            tasks.append(fetch_with_retry(client, url))
+        
+        responses = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        for res in responses:
+            if isinstance(res, Exception): continue
+            if res.status_code == 200:
+                root = ET.fromstring(res.text)
+                for item in root.findall('.//item'):
+                    title_el = item.find('title')
+                    desc_el = item.find('description')
+                    link_el = item.find('link')
+                    
+                    title = title_el.text if title_el is not None else ""
+                    desc = desc_el.text if desc_el is not None else ""
+                    link = link_el.text if link_el is not None else ""
+                    
+                    text_to_check = (title + " " + desc).lower()
+                    core_name = company_name.lower().replace(" ltd.", "").replace(" pvt.", "").replace(" private", "").replace(" limited", "").strip()
+                    
+                    if core_name in text_to_check:
                         if any(kw in text_to_check for kw in adverse_keywords) or "ed raid" in text_to_check:
                             flags.append({
                                 "source": "Google News Intelligence",
@@ -119,9 +119,6 @@ async def scrape_google_news(company_name: str) -> list:
                                 "scraped_at": datetime.now().isoformat()
                             })
                             
-            except Exception as e:
-                print(f"Failed to crawl Google News for query '{query}': {e}")
-                
     return flags
 
 async def aggregate_regulatory_intelligence(company_name: str, cin: str = None, promoter_names: list = None) -> dict:
